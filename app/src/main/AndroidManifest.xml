@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Needed to talk to your backend API -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      NOTE: no storage/media permissions are declared here on purpose. The
+      document upload screen uses the system file picker (GetContent), which
+      grants the app temporary access to whatever the user picks without
+      needing READ_MEDIA_IMAGES/READ_EXTERNAL_STORAGE or a runtime permission
+      prompt. If you later add camera capture for documents, you'll need to
+      add a FileProvider + CAMERA permission at that point.
+    -->
+
+    <application
+        android:name=".ByeByeChallanApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ByeByeChallan"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="34">
+
+        <!--
+          usesCleartextTraffic="true" is required ONLY because your backend runs on
+          plain http:// during local development (10.0.2.2 / your LAN IP).
+          Remove this once your backend is deployed with https:// in production.
+        -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ByeByeChallan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
