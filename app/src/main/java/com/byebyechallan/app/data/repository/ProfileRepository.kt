@@ -49,4 +49,20 @@ class ProfileRepository(private val api: ApiService) {
             ApiResult.Error(e.message ?: "Network error while adding vehicle.")
         }
     }
+
+    suspend fun getVehiclesForProfile(
+        userId: Long,
+        profileId: Long
+    ): ApiResult<List<com.byebyechallan.app.data.model.ProfileVehicleResponseDto>> {
+        return try {
+            val response = api.getVehiclesForProfile(userId, profileId)
+            if (response.isSuccessful) {
+                ApiResult.Success(response.body() ?: emptyList())
+            } else {
+                ApiResult.Error("Couldn't load vehicles (${response.code()}).")
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "Network error while loading vehicles.")
+        }
+    }
 }

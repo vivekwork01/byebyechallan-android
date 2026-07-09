@@ -43,6 +43,13 @@ interface ApiService {
         @Body request: VehicleRequestDto
     ): Response<ProfileVehicleResponseDto>
 
+    // Fetch all vehicles under a profile (backend should provide this endpoint).
+    @GET("api/v1/user/{userId}/profile/{profileId}/vehicles")
+    suspend fun getVehiclesForProfile(
+        @Path("userId") userId: Long,
+        @Path("profileId") profileId: Long
+    ): Response<List<ProfileVehicleResponseDto>>
+
     @GET("api/v1/document/{userId}/profile/{profileId}/registration/{vehicleRegistrationNo}")
     suspend fun getAllDocuments(
         @Path("userId") userId: Long,

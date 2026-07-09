@@ -34,7 +34,7 @@ fun ProfileDetailScreen(
     onAddVehicle: () -> Unit,
     onVehicleClick: (LocalVehicle) -> Unit
 ) {
-    val viewModel = viewModel { ProfileDetailViewModel(profileId, app.vehicleLocalStore) }
+    val viewModel = viewModel { ProfileDetailViewModel(profileId, app.profileRepository, app.sessionManager) }
     val state by viewModel.uiState.collectAsState()
 
     // Observe flag set by AddVehicle and refresh vehicles when requested

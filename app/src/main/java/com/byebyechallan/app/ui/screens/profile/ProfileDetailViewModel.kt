@@ -3,7 +3,6 @@ package com.byebyechallan.app.ui.screens.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.byebyechallan.app.data.local.LocalVehicle
-import com.byebyechallan.app.data.local.VehicleLocalStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -15,7 +14,8 @@ data class ProfileDetailUiState(
 
 class ProfileDetailViewModel(
     private val profileId: Long,
-    private val vehicleLocalStore: VehicleLocalStore
+    private val profileRepository: com.byebyechallan.app.data.repository.ProfileRepository,
+    private val sessionManager: com.byebyechallan.app.data.remote.SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileDetailUiState())
@@ -27,8 +27,31 @@ class ProfileDetailViewModel(
 
     fun loadVehicles() {
         viewModelScope.launch {
-            val vehicles = vehicleLocalStore.getVehiclesForProfile(profileId)
-            _uiState.value = ProfileDetailUiState(isLoading = false, vehicles = vehicles)
+            val userId = sessionManager.getUserId()
+            if (userId == null) {
+                _uiState.value = ProfileDetailUiState(isLoading = false, vehicles = emptyList())
+                return@launch
+            }
+
+            when (val result = profileRepository.getVehiclesForProfile(userId, profileId)) {
+                is com.byebyechallan.app.data.repository.ApiResult.Success -> {
+                    val vehicles = result.data.map { dto ->
+                        com.byebyechallan.app.data.local.LocalVehicle(
+                            profileId = profileId,
+                            registrationNo = dto.vehicleRegistrationNo ?: "",
+                            country = "",
+                            state = "",
+                            registrationType = "",
+                            vehicleType = "",
+                            vehicleName = dto.profileVehicleName
+                        )
+                    }
+                    _uiState.value = ProfileDetailUiState(isLoading = false, vehicles = vehicles)
+                }
+                is com.byebyechallan.app.data.repository.ApiResult.Error -> {
+                    _uiState.value = ProfileDetailUiState(isLoading = false, vehicles = emptyList())
+                }
+            }
         }
     }
 }

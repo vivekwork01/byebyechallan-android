@@ -2,7 +2,6 @@ package com.byebyechallan.app.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.byebyechallan.app.data.local.VehicleLocalStore
 import com.byebyechallan.app.data.model.ProfileDto
 import com.byebyechallan.app.data.model.UserDocumentDto
 import com.byebyechallan.app.data.remote.SessionManager
@@ -31,7 +30,6 @@ data class HomeUiState(
 class HomeViewModel(
     private val profileRepository: ProfileRepository,
     private val documentRepository: DocumentRepository,
-    private val vehicleLocalStore: VehicleLocalStore,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -53,7 +51,7 @@ class HomeViewModel(
 
             when (val result = profileRepository.getAllProfiles(userId)) {
                 is ApiResult.Success -> {
-                    // For each profile, fetch its known vehicles (local cache) and
+                    // For each profile, fetch its vehicles from the server and
                     // their documents in parallel, then pick the soonest expiry.
                     val cardJobs = result.data.map { profile ->
                         async { buildProfileCard(userId, profile) }
@@ -69,11 +67,12 @@ class HomeViewModel(
     }
 
     private suspend fun buildProfileCard(userId: Long, profile: ProfileDto): ProfileCardData {
-        val vehicles = vehicleLocalStore.getVehiclesForProfile(profile.id)
-        val allDocs = mutableListOf<UserDocumentDto>()
+        val vehiclesResult = profileRepository.getVehiclesForProfile(userId, profile.id)
+        val regNos = if (vehiclesResult is ApiResult.Success) vehiclesResult.data.mapNotNull { it.vehicleRegistrationNo } else emptyList()
 
-        for (vehicle in vehicles) {
-            val docsResult = documentRepository.getUploadedDocuments(userId, profile.id, vehicle.registrationNo)
+        val allDocs = mutableListOf<UserDocumentDto>()
+        for (regNo in regNos) {
+            val docsResult = documentRepository.getUploadedDocuments(userId, profile.id, regNo)
             if (docsResult is ApiResult.Success) {
                 allDocs.addAll(docsResult.data)
             }
@@ -85,7 +84,7 @@ class HomeViewModel(
 
         return ProfileCardData(
             profile = profile,
-            vehicleCount = vehicles.size,
+            vehicleCount = regNos.size,
             soonestExpiringDoc = soonest
         )
     }

@@ -41,7 +41,6 @@ fun HomeScreen(
         HomeViewModel(
             app.profileRepository,
             app.documentRepository,
-            app.vehicleLocalStore,
             app.sessionManager
         )
     }
