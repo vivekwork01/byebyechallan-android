@@ -18,3 +18,8 @@ data class RegistrationDto(
     val registrationCode: String,
     val registrationType: String
 )
+
+data class VehicleTypeResponseDto(
+    val vehicleTypeId: String,
+    val vehicleTypeName: String
+)

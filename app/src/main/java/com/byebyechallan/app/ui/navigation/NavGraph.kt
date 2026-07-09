@@ -67,6 +67,7 @@ fun AppNavGraph(app: ByeByeChallanApp) {
         composable(Screen.Home.route) {
             HomeScreen(
                 app = app,
+                navController = navController,
                 onProfileClick = { id, name ->
                     navController.navigate(Screen.ProfileDetail.createRoute(id, name))
                 },
@@ -83,7 +84,11 @@ fun AppNavGraph(app: ByeByeChallanApp) {
             CreateProfileScreen(
                 app = app,
                 onBack = { navController.popBackStack() },
-                onProfileCreated = { navController.popBackStack() }
+                onProfileCreated = {
+                    // Signal Home to refresh its profiles list, then return
+                    navController.previousBackStackEntry?.savedStateHandle?.set("refreshProfiles", true)
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -98,6 +103,7 @@ fun AppNavGraph(app: ByeByeChallanApp) {
             val profileName = backStackEntry.arguments?.getString("profileName") ?: ""
             ProfileDetailScreen(
                 app = app,
+                navController = navController,
                 profileId = profileId,
                 profileName = profileName,
                 onBack = { navController.popBackStack() },
@@ -127,6 +133,9 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                 profileId = profileId,
                 onBack = { navController.popBackStack() },
                 onVehicleAdded = { vehicle ->
+                    // Tell ProfileDetail to refresh its vehicle list when AddVehicle completes
+                    navController.previousBackStackEntry?.savedStateHandle?.set("refreshVehicles", true)
+
                     navController.navigate(
                         Screen.VehicleDetail.createRoute(
                             profileId = profileId,

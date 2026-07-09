@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.compose.runtime.LaunchedEffect
 import com.byebyechallan.app.ByeByeChallanApp
 import com.byebyechallan.app.ui.components.EmptyState
 import com.byebyechallan.app.ui.components.ErrorBanner
@@ -30,6 +32,7 @@ import android.widget.Toast
 @Composable
 fun HomeScreen(
     app: ByeByeChallanApp,
+    navController: NavHostController,
     onProfileClick: (id: Long, name: String) -> Unit,
     onAddProfileClick: () -> Unit,
     onLogout: () -> Unit
@@ -46,6 +49,17 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    // Listen for a refresh signal set by child screens (e.g. CreateProfile) and reload
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { backStackEntry ->
+            val refresh = backStackEntry.savedStateHandle.get<Boolean>("refreshProfiles") ?: false
+            if (refresh) {
+                viewModel.loadProfiles()
+                backStackEntry.savedStateHandle.set("refreshProfiles", false)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

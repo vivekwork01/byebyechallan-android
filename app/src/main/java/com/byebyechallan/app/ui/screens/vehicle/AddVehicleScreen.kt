@@ -18,6 +18,7 @@ import com.byebyechallan.app.ByeByeChallanApp
 import com.byebyechallan.app.data.model.CountryDto
 import com.byebyechallan.app.data.model.RegistrationDto
 import com.byebyechallan.app.data.model.StateDto
+import com.byebyechallan.app.data.model.VehicleTypeResponseDto
 import com.byebyechallan.app.ui.components.DropdownSelector
 import com.byebyechallan.app.ui.components.ErrorBanner
 import com.byebyechallan.app.ui.components.PrimaryButton
@@ -31,14 +32,15 @@ fun AddVehicleScreen(
     onBack: () -> Unit,
     onVehicleAdded: (LocalVehicle) -> Unit
 ) {
-    val viewModel = viewModel { AddVehicleViewModel(profileId, app.masterRepository, app.vehicleLocalStore) }
+    val viewModel = viewModel { AddVehicleViewModel(profileId, app.masterRepository, app.documentRepository, app.profileRepository, app.sessionManager, app.vehicleLocalStore) }
     val state by viewModel.uiState.collectAsState()
 
     var registrationNo by remember { mutableStateOf("") }
+    var vehicleName by remember { mutableStateOf("") }
     var selectedCountry by remember { mutableStateOf<CountryDto?>(null) }
     var selectedState by remember { mutableStateOf<StateDto?>(null) }
     var selectedRegType by remember { mutableStateOf<RegistrationDto?>(null) }
-    var selectedVehicleType by remember { mutableStateOf<String?>(null) }
+    var selectedVehicleType by remember { mutableStateOf<VehicleTypeResponseDto?>(null) }
 
     val context = LocalContext.current
 
@@ -85,6 +87,17 @@ fun AddVehicleScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            OutlinedTextField(
+                value = vehicleName,
+                onValueChange = { vehicleName = it },
+                label = { Text("Vehicle Name (optional)") },
+                placeholder = { Text("e.g. John's Honda Activa") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             DropdownSelector(
                 label = "Country",
                 options = state.countries,
@@ -124,9 +137,10 @@ fun AddVehicleScreen(
 
             DropdownSelector(
                 label = "Vehicle Type",
-                options = PLACEHOLDER_VEHICLE_TYPES,
+                options = state.vehicleTypes,
                 selectedOption = selectedVehicleType,
-                optionLabel = { it },
+                optionLabel = { it.vehicleTypeName },
+                enabled = state.vehicleTypes.isNotEmpty(),
                 onOptionSelected = { selectedVehicleType = it }
             )
 
@@ -143,10 +157,11 @@ fun AddVehicleScreen(
                 onClick = {
                     viewModel.saveVehicle(
                         registrationNo = registrationNo,
-                        country = selectedCountry?.countryName ?: "",
-                        state = selectedState?.stateName ?: "",
-                        registrationType = selectedRegType?.registrationType ?: "",
-                        vehicleType = selectedVehicleType ?: "",
+                        vehicleName = vehicleName,
+                        country = selectedCountry?.countryId ?: "",
+                        state = selectedState?.stateId ?: "",
+                        registrationType = selectedRegType?.registrationCode ?: "",
+                        vehicleTypeId = selectedVehicleType?.vehicleTypeId ?: "",
                         onSaved = onVehicleAdded
                     )
                 }

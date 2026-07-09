@@ -36,4 +36,14 @@ class MasterRepository(private val api: ApiService) {
             ApiResult.Error(e.message ?: "Network error while loading registration types.")
         }
     }
+
+    suspend fun getVehicleTypes(): ApiResult<List<com.byebyechallan.app.data.model.VehicleTypeResponseDto>> {
+        return try {
+            val response = api.getVehicleTypes()
+            if (response.isSuccessful) ApiResult.Success(response.body() ?: emptyList())
+            else ApiResult.Error("Couldn't load vehicle types (${response.code()}).")
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "Network error while loading vehicle types.")
+        }
+    }
 }

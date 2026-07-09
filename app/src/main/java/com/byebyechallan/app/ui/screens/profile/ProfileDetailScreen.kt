@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.compose.runtime.LaunchedEffect
 import com.byebyechallan.app.ByeByeChallanApp
 import com.byebyechallan.app.data.local.LocalVehicle
 import com.byebyechallan.app.ui.components.EmptyState
@@ -25,6 +27,7 @@ import com.byebyechallan.app.ui.components.FullScreenLoading
 @Composable
 fun ProfileDetailScreen(
     app: ByeByeChallanApp,
+    navController: NavHostController,
     profileId: Long,
     profileName: String,
     onBack: () -> Unit,
@@ -33,6 +36,17 @@ fun ProfileDetailScreen(
 ) {
     val viewModel = viewModel { ProfileDetailViewModel(profileId, app.vehicleLocalStore) }
     val state by viewModel.uiState.collectAsState()
+
+    // Observe flag set by AddVehicle and refresh vehicles when requested
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { backStackEntry ->
+            val refresh = backStackEntry.savedStateHandle.get<Boolean>("refreshVehicles") ?: false
+            if (refresh) {
+                viewModel.loadVehicles()
+                backStackEntry.savedStateHandle.set("refreshVehicles", false)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -88,11 +102,18 @@ private fun VehicleRow(vehicle: LocalVehicle, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(vehicle.registrationNo, style = MaterialTheme.typography.titleMedium)
+            vehicle.vehicleName?.let { name ->
                 Text(
-                    text = vehicle.vehicleType,
+                    text = name,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            Text(
+                text = vehicle.vehicleType,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             }
             Icon(Icons.Filled.ChevronRight, contentDescription = null)
         }

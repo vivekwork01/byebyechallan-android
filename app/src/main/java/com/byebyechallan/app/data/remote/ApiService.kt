@@ -35,6 +35,14 @@ interface ApiService {
 
     // ---------- Document Controller ----------
 
+    @POST("api/v1/user/{userId}/profile/{profileId}/add-vehicle/{vehicleRegistrationNo}")
+    suspend fun addVehicleToProfile(
+        @Path("userId") userId: Long,
+        @Path("profileId") profileId: Long,
+        @Path("vehicleRegistrationNo") vehicleRegistrationNo: String,
+        @Body request: VehicleRequestDto
+    ): Response<ProfileVehicleResponseDto>
+
     @GET("api/v1/document/{userId}/profile/{profileId}/registration/{vehicleRegistrationNo}")
     suspend fun getAllDocuments(
         @Path("userId") userId: Long,
@@ -57,7 +65,7 @@ interface ApiService {
         @Query("registration_type") registrationType: String,
         @Query("vehicle_type") vehicleType: String,
         @Query("doc_type") docType: String? = null
-    ): Response<List<CoreDocumentEntity>>
+    ): Response<List<DocumentRequestDto>>
 
     // NOTE: Not yet present in the Swagger spec you shared - backend team needs to add
     // this multipart endpoint. The app sends the raw file here first, then uses the
@@ -78,4 +86,7 @@ interface ApiService {
 
     @GET("api/v1/master/country/{countryId}/registration")
     suspend fun getRegistrationTypes(@Path("countryId") countryId: String): Response<List<RegistrationDto>>
+
+    @GET("api/v1/master/vehicle-type")
+    suspend fun getVehicleTypes(): Response<List<VehicleTypeResponseDto>>
 }

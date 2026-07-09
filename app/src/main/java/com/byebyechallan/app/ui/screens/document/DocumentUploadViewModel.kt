@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
+import java.time.LocalDateTime
 import java.time.LocalDate
 
 data class DocumentUploadUiState(
@@ -87,8 +88,8 @@ class DocumentUploadViewModel(
                 docTemplateId = docTemplateId,
                 docName = docName,
                 docId = _uiState.value.existingDoc?.docId ?: "${docTemplateId}_${System.currentTimeMillis()}",
-                expiryDate = com.byebyechallan.app.util.DateUtils.toIsoDateTimeString(expiryDate),
-                notificationTime = null,
+                expiryDate = LocalDateTime.now().toString(),
+                notificationTime = LocalDateTime.now().toString(),
                 email = notifyEmail,
                 whatsApp = notifyWhatsApp,
                 sms = notifySms,

@@ -15,7 +15,7 @@ class DocumentRepository(private val api: ApiService) {
         state: String,
         registrationType: String,
         vehicleType: String
-    ): ApiResult<List<CoreDocumentEntity>> {
+    ): ApiResult<List<DocumentRequestDto>> {
         return try {
             val response = api.getDocumentList(country, state, registrationType, vehicleType)
             if (response.isSuccessful) {
@@ -51,7 +51,7 @@ class DocumentRepository(private val api: ApiService) {
      * so the Vehicle Detail screen can show one combined list with status badges.
      */
     fun mergeChecklist(
-        templates: List<CoreDocumentEntity>,
+        templates: List<DocumentRequestDto>,
         uploaded: List<UserDocumentDto>
     ): List<DocumentChecklistItem> {
         return templates.map { template ->

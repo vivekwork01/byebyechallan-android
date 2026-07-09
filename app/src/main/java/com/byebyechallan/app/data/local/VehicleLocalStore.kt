@@ -16,7 +16,8 @@ data class LocalVehicle(
     val country: String,
     val state: String,
     val registrationType: String,
-    val vehicleType: String
+    val vehicleType: String,
+    val vehicleName: String? = null
 )
 
 /**

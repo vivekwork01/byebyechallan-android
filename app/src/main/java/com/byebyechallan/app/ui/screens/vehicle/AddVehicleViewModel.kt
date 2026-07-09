@@ -7,6 +7,7 @@ import com.byebyechallan.app.data.local.VehicleLocalStore
 import com.byebyechallan.app.data.model.CountryDto
 import com.byebyechallan.app.data.model.RegistrationDto
 import com.byebyechallan.app.data.model.StateDto
+import com.byebyechallan.app.data.model.VehicleTypeResponseDto
 import com.byebyechallan.app.data.repository.ApiResult
 import com.byebyechallan.app.data.repository.MasterRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,22 +15,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
- * PLACEHOLDER DATA - PLEASE READ:
- * The Swagger spec has no endpoint to fetch vehicle types, even though
- * CoreVehicleTypeEntity exists as a schema and "vehicle_type" is a required
- * query param for GET /api/v1/document/list. This hardcoded list is a stand-in
- * so the app is usable now. RECOMMENDED FIX: backend should add
- * GET /api/v1/master/vehicle-type (or similar) returning real vehicleTypeId
- * values that match what's stored against CoreDocumentEntity records. Once that
- * exists, replace this list with a real repository call - same pattern as
- * countries/states below.
+ * Now uses the backend vehicle-type endpoint (GET /api/v1/master/vehicle-type).
  */
-val PLACEHOLDER_VEHICLE_TYPES = listOf("Two Wheeler", "Car", "Commercial Vehicle", "Truck", "Bus")
 
 data class AddVehicleUiState(
     val countries: List<CountryDto> = emptyList(),
     val states: List<StateDto> = emptyList(),
     val registrationTypes: List<RegistrationDto> = emptyList(),
+    val vehicleTypes: List<VehicleTypeResponseDto> = emptyList(),
     val isLoadingMaster: Boolean = true,
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
@@ -39,6 +32,9 @@ data class AddVehicleUiState(
 class AddVehicleViewModel(
     private val profileId: Long,
     private val masterRepository: MasterRepository,
+    private val documentRepository: com.byebyechallan.app.data.repository.DocumentRepository,
+    private val profileRepository: com.byebyechallan.app.data.repository.ProfileRepository,
+    private val sessionManager: com.byebyechallan.app.data.remote.SessionManager,
     private val vehicleLocalStore: VehicleLocalStore
 ) : ViewModel() {
 
@@ -47,6 +43,7 @@ class AddVehicleViewModel(
 
     init {
         loadCountries()
+        loadVehicleTypes()
     }
 
     private fun loadCountries() {
@@ -60,6 +57,15 @@ class AddVehicleViewModel(
                     errorMessage = result.message,
                     isLoadingMaster = false
                 )
+            }
+        }
+    }
+
+    private fun loadVehicleTypes() {
+        viewModelScope.launch {
+            when (val result = masterRepository.getVehicleTypes()) {
+                is ApiResult.Success -> _uiState.value = _uiState.value.copy(vehicleTypes = result.data)
+                is ApiResult.Error -> _uiState.value = _uiState.value.copy(errorMessage = result.message)
             }
         }
     }
@@ -78,31 +84,80 @@ class AddVehicleViewModel(
 
     fun saveVehicle(
         registrationNo: String,
+        vehicleName: String,
         country: String,
         state: String,
         registrationType: String,
-        vehicleType: String,
+        vehicleTypeId: String,
         onSaved: (LocalVehicle) -> Unit
     ) {
         if (registrationNo.isBlank() || country.isBlank() || state.isBlank() ||
-            registrationType.isBlank() || vehicleType.isBlank()
+            registrationType.isBlank() || vehicleTypeId.isBlank()
         ) {
             _uiState.value = _uiState.value.copy(errorMessage = "Please fill in all fields.")
             return
         }
         _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
         viewModelScope.launch {
-            val vehicle = LocalVehicle(
-                profileId = profileId,
-                registrationNo = registrationNo.trim().uppercase(),
-                country = country,
-                state = state,
-                registrationType = registrationType,
-                vehicleType = vehicleType
+            val userId = sessionManager.getUserId()
+            if (userId == null) {
+                _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = "Session expired. Please log in again.")
+                return@launch
+            }
+
+            // 1) Fetch required document templates for this registration (use vehicleTypeName for the query param)
+            val checklistResult = documentRepository.getDocumentChecklist(country, state, registrationType, vehicleTypeId)
+            val documents = when (checklistResult) {
+                is ApiResult.Success -> checklistResult.data.map { template ->
+                    com.byebyechallan.app.data.model.DocumentRequestDto(
+                        docTemplateId = template.docId,
+                        docName = template.docName,
+                        docId = "",
+                        expiryDate = null,
+                        notificationTime = template.notificationTime,
+                        email = false,
+                        whatsApp = false,
+                        sms = false,
+                        s3Link = null
+                    )
+                }
+                is ApiResult.Error -> {
+                    _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = checklistResult.message)
+                    return@launch
+                }
+                else -> {
+                    _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = "Unknown error while loading documents.")
+                    return@launch
+                }
+            }
+
+            // 2) Call backend to add vehicle to profile with prepared documents and vehicleTypeId
+            val vehicleRequest = com.byebyechallan.app.data.model.VehicleRequestDto(
+                vehicleRegistrationNumber = registrationNo.trim().uppercase(),
+                vehicleName = vehicleName.trim().ifEmpty { registrationNo.trim().uppercase() },
+                documents = documents
             )
-            vehicleLocalStore.addVehicle(vehicle)
-            _uiState.value = _uiState.value.copy(isSaving = false, isSuccess = true)
-            onSaved(vehicle)
+
+            val addResult = profileRepository.addVehicleToProfile(userId, profileId, registrationNo.trim().uppercase(), vehicleRequest)
+            when (addResult) {
+                is ApiResult.Success -> {
+                    val vehicle = LocalVehicle(
+                        profileId = profileId,
+                        registrationNo = registrationNo.trim().uppercase(),
+                        country = country,
+                        state = state,
+                        registrationType = registrationType,
+                        vehicleType = vehicleTypeId,
+                        vehicleName = vehicleName.trim().ifEmpty { registrationNo.trim().uppercase() }
+                    )
+                    vehicleLocalStore.addVehicle(vehicle)
+                    _uiState.value = _uiState.value.copy(isSaving = false, isSuccess = true)
+                    onSaved(vehicle)
+                }
+                is ApiResult.Error -> {
+                    _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = addResult.message)
+                }
+            }
         }
     }
 }

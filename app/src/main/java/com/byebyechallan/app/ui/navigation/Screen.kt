@@ -4,6 +4,8 @@ package com.byebyechallan.app.ui.navigation
  * Every screen's route lives here. Centralizing this avoids typos in route
  * strings scattered across the codebase - always reference Screen.X.route.
  */
+import android.net.Uri
+
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Login : Screen("login")
@@ -13,7 +15,7 @@ sealed class Screen(val route: String) {
 
     object ProfileDetail : Screen("profile_detail/{profileId}/{profileName}") {
         fun createRoute(profileId: Long, profileName: String) =
-            "profile_detail/$profileId/$profileName"
+            "profile_detail/$profileId/${Uri.encode(profileName)}"
     }
 
     object AddVehicle : Screen("add_vehicle/{profileId}") {
@@ -30,7 +32,7 @@ sealed class Screen(val route: String) {
             state: String,
             registrationType: String,
             vehicleType: String
-        ) = "vehicle_detail/$profileId/$vehicleRegNo/$country/$state/$registrationType/$vehicleType"
+        ) = "vehicle_detail/$profileId/${Uri.encode(vehicleRegNo)}/${Uri.encode(country)}/${Uri.encode(state)}/${Uri.encode(registrationType)}/${Uri.encode(vehicleType)}"
     }
 
     object DocumentUpload : Screen(
@@ -41,6 +43,6 @@ sealed class Screen(val route: String) {
             vehicleRegNo: String,
             docTemplateId: String,
             docName: String
-        ) = "document_upload/$profileId/$vehicleRegNo/$docTemplateId/$docName"
+        ) = "document_upload/$profileId/${Uri.encode(vehicleRegNo)}/${Uri.encode(docTemplateId)}/${Uri.encode(docName)}"
     }
 }

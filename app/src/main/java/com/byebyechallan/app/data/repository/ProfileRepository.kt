@@ -31,4 +31,22 @@ class ProfileRepository(private val api: ApiService) {
             ApiResult.Error(e.message ?: "Network error while creating profile.")
         }
     }
+
+    suspend fun addVehicleToProfile(
+        userId: Long,
+        profileId: Long,
+        vehicleRegistrationNo: String,
+        request: com.byebyechallan.app.data.model.VehicleRequestDto
+    ): ApiResult<com.byebyechallan.app.data.model.ProfileVehicleResponseDto> {
+        return try {
+            val response = api.addVehicleToProfile(userId, profileId, vehicleRegistrationNo, request)
+            if (response.isSuccessful && response.body() != null) {
+                ApiResult.Success(response.body()!!)
+            } else {
+                ApiResult.Error("Couldn't add vehicle (${response.code()}).")
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(e.message ?: "Network error while adding vehicle.")
+        }
+    }
 }

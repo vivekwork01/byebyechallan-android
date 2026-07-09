@@ -1,0 +1,921 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "ByeByeChallan Backend API",
+        "description": "This documentation covers all the core APIs for the backend service.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8081",
+            "description": "Generated server url"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Document Controller",
+            "description": "Api for managing the Documents"
+        },
+        {
+            "name": "File Controller",
+            "description": "Download and Upload the file"
+        },
+        {
+            "name": "Auth Manager",
+            "description": "Endpoints for user authentication and registration"
+        },
+        {
+            "name": "Profile Controller",
+            "description": "Profile API Controller"
+        },
+        {
+            "name": "Master Controller",
+            "description": "Controller for master data management"
+        }
+    ],
+    "paths": {
+        "/api/v1/user/{userId}/profile": {
+            "get": {
+                "tags": [
+                    "Profile Controller"
+                ],
+                "summary": "Get all Profile",
+                "description": "Get all Profile for a User",
+                "operationId": "getAllProfile",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProfileDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Profile Controller"
+                ],
+                "summary": "Create Profile",
+                "description": "Create Profile for a User",
+                "operationId": "createProfile",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProfileRequestDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProfileDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/{userId}/profile/{profileId}/add-vehicle/{vehicleRegistrationNo}": {
+            "post": {
+                "tags": [
+                    "Profile Controller"
+                ],
+                "summary": "Add Vehicle to Profile",
+                "description": "Add Vehicle to a User's Profile",
+                "operationId": "addVehicleToProfile",
+                "parameters": [
+                    {
+                        "name": "profileId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "vehicleRegistrationNo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VehicleRequestDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProfileVehicleResponseDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/file/upload": {
+            "post": {
+                "tags": [
+                    "File Controller"
+                ],
+                "operationId": "upload",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "file"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileResponseDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/document/{userId}/profile/{profileId}/registration/{vehicleRegistrationNo}": {
+            "get": {
+                "tags": [
+                    "Document Controller"
+                ],
+                "summary": "Get all the Documents for a Profile Vehicle",
+                "description": "Retrieve all documents associated with a specific profile",
+                "operationId": "getAllDocuments",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "profileId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "vehicleRegistrationNo",
+                        "in": "path",
+                        "required": true,
+                                "schema": {
+                                    "type": "string"
+                                }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/UserDocumentDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Document Controller"
+                ],
+                "summary": "Save Document for a Profile Vehicle",
+                "description": "Save the document for Profile Vehicle of a User",
+                "operationId": "saveDocument",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "profileId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "vehicleRegistrationNo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DocumentRequestDto"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserDocumentDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/register": {
+            "post": {
+                "tags": [
+                    "Auth Manager"
+                ],
+                "summary": "Register a New User",
+                "description": "Registers a new user with the provided details. Returns a success message if registration is successful, or an error message if the user already exists.",
+                "operationId": "register",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth Manager"
+                ],
+                "summary": "User Login",
+                "description": "Login user with given details",
+                "operationId": "authenticate",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/{userId}/profile/{profileId}/all-vehicle": {
+            "get": {
+                "tags": [
+                    "Profile Controller"
+                ],
+                "summary": "Get all Vehicle for a Profile",
+                "description": "Get all Vehicle for a Profile",
+                "operationId": "getAllProfileVehicle",
+                "parameters": [
+                    {
+                        "name": "profileId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProfileVehicleResponseDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/master/vehicle-type": {
+            "get": {
+                "tags": [
+                    "Master Controller"
+                ],
+                "summary": "Get all Vehicle Type",
+                "description": "Get all Vehicle Type",
+                "operationId": "getAllVehicleType",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/VehicleTypeResponseDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/master/country": {
+            "get": {
+                "tags": [
+                    "Master Controller"
+                ],
+                "summary": "Get all Countries",
+                "description": "Get all Countries",
+                "operationId": "getCountry",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CountryDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/master/country/{countryId}": {
+            "get": {
+                "tags": [
+                    "Master Controller"
+                ],
+                "summary": "Get State for Selected Country",
+                "description": "Get all State for selected country",
+                "operationId": "getStates",
+                "parameters": [
+                    {
+                        "name": "countryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/StateDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/master/country/{countryId}/registration": {
+            "get": {
+                "tags": [
+                    "Master Controller"
+                ],
+                "summary": "Get all Registration Type for a Country",
+                "description": "Get all Registration Type for a Country",
+                "operationId": "getAllRegistrationType",
+                "parameters": [
+                    {
+                        "name": "countryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RegistrationDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/file/{fileName}": {
+            "get": {
+                "tags": [
+                    "File Controller"
+                ],
+                "operationId": "download",
+                "parameters": [
+                    {
+                        "name": "fileName",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/document/list": {
+            "get": {
+                "tags": [
+                    "Document Controller"
+                ],
+                "summary": "Get the Document List",
+                "description": "Get the document list for a selected country, state, registration vehicle",
+                "operationId": "getDocumentList",
+                "parameters": [
+                    {
+                        "name": "country",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "registration_type",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "vehicle_type",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "doc_type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DocumentRequestDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ProfileRequestDto": {
+                "type": "object",
+                "properties": {
+                    "profileName": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ProfileDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "userId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "profileName": {
+                        "type": "string"
+                    }
+                }
+            },
+            "DocumentRequestDto": {
+                "type": "object",
+                "properties": {
+                    "docTemplateId": {
+                        "type": "string"
+                    },
+                    "docName": {
+                        "type": "string"
+                    },
+                    "docId": {
+                        "type": "string"
+                    },
+                    "sms": {
+                        "type": "boolean"
+                    },
+                    "email": {
+                        "type": "boolean"
+                    },
+                    "whatsApp": {
+                        "type": "boolean"
+                    },
+                    "expiryDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "notificationTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "uploaded": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "VehicleRequestDto": {
+                "type": "object",
+                "properties": {
+                    "vehicleRegistrationNumber": {
+                        "type": "string"
+                    },
+                    "vehicleName": {
+                        "type": "string"
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DocumentRequestDto"
+                        }
+                    }
+                }
+            },
+            "ProfileVehicleResponseDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "profileVehicleName": {
+                        "type": "string"
+                    },
+                    "vehicleRegistrationNo": {
+                        "type": "string"
+                    },
+                    "docs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/UserDocumentDto"
+                        }
+                    }
+                }
+            },
+            "UserDocumentDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "userId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "profileId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "vehicleRegistrationNo": {
+                        "type": "string"
+                    },
+                    "docTemplateId": {
+                        "type": "string"
+                    },
+                    "docId": {
+                        "type": "string"
+                    },
+                    "docName": {
+                        "type": "string"
+                    },
+                    "s3Link": {
+                        "type": "string"
+                    },
+                    "uploadedDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "expiryDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "uploaded": {
+                        "type": "boolean"
+                    },
+                    "sms": {
+                        "type": "boolean"
+                    },
+                    "email": {
+                        "type": "boolean"
+                    },
+                    "whatsApp": {
+                        "type": "boolean"
+                    },
+                    "notificationTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "createDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedDate": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "FileResponseDto": {
+                "type": "object",
+                "properties": {
+                    "fileName": {
+                        "type": "string"
+                    },
+                    "filePath": {
+                        "type": "string"
+                    },
+                    "fileUrl": {
+                        "type": "string"
+                    }
+                }
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "mobileNo": {
+                        "type": "string"
+                    }
+                }
+            },
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "username": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "AuthResponse": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string"
+                    },
+                    "refreshToken": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "VehicleTypeResponseDto": {
+                "type": "object",
+                "properties": {
+                    "vehicleTypeId": {
+                        "type": "string"
+                    },
+                    "vehicleTypeName": {
+                        "type": "string"
+                    }
+                }
+            },
+            "CountryDto": {
+                "type": "object",
+                "properties": {
+                    "countryId": {
+                        "type": "string"
+                    },
+                    "countryStateId": {
+                        "type": "string"
+                    },
+                    "countryName": {
+                        "type": "string"
+                    }
+                }
+            },
+            "StateDto": {
+                "type": "object",
+                "properties": {
+                    "countryStateId": {
+                        "type": "string"
+                    },
+                    "countryId": {
+                        "type": "string"
+                    },
+                    "stateId": {
+                        "type": "string"
+                    },
+                    "countryName": {
+                        "type": "string"
+                    },
+                    "stateName": {
+                        "type": "string"
+                    }
+                }
+            },
+            "RegistrationDto": {
+                "type": "object",
+                "properties": {
+                    "registrationCode": {
+                        "type": "string"
+                    },
+                    "registrationType": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+    }
+}

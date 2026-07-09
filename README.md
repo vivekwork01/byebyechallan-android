@@ -121,15 +121,11 @@ reinstalls the app or switches phones, they'd need to re-add their vehicles
 **Recommended fix**: add `GET /api/v1/user/{userId}/profile/{profileId}/vehicles`
 returning distinct registration numbers + their stored type info.
 
-### 5d. No endpoint for vehicle types
-`GET /api/v1/document/list` requires a `vehicle_type` query param, and
-`CoreVehicleTypeEntity` exists as a schema, but there's no master-data
-endpoint to fetch the list of valid vehicle types. The app currently uses a
-**hardcoded placeholder list** ("Two Wheeler", "Car", "Commercial Vehicle",
-"Truck", "Bus") - see `PLACEHOLDER_VEHICLE_TYPES` in
-`ui/screens/vehicle/AddVehicleViewModel.kt`. **Recommended fix**: add a
-`GET /api/v1/master/vehicle-type` endpoint and the app can swap to it with a
-one-function change.
+### 5d. Vehicle types now fetch from backend
+✅ **RESOLVED**: `GET /api/v1/master/vehicle-type` endpoint is now integrated.
+The app fetches real vehicle types on the Add Vehicle screen instead of using
+a hardcoded list. Returns `VehicleTypeResponseDto[]` with `{vehicleTypeId, vehicleTypeName}`.
+The vehicle type ID is sent to the backend when creating a profile vehicle.
 
 ### 5e. `docId` vs `docTemplateId` ambiguity
 `DocumentRequestDto` has both `docTemplateId` and `docId` fields. The app
