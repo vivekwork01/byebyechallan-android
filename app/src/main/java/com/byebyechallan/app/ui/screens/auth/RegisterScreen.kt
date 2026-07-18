@@ -49,7 +49,7 @@ fun RegisterScreen(
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
-            Toast.makeText(context, "Registered", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "User registered successfully", Toast.LENGTH_SHORT).show()
             viewModel.clearRegisterState()
             onRegisterSuccess()
         }

@@ -43,8 +43,7 @@ interface ApiService {
         @Body request: VehicleRequestDto
     ): Response<ProfileVehicleResponseDto>
 
-    // Fetch all vehicles under a profile (backend should provide this endpoint).
-    @GET("api/v1/user/{userId}/profile/{profileId}/vehicles")
+    @GET("api/v1/user/{userId}/profile/{profileId}/all-vehicle")
     suspend fun getVehiclesForProfile(
         @Path("userId") userId: Long,
         @Path("profileId") profileId: Long
@@ -74,11 +73,8 @@ interface ApiService {
         @Query("doc_type") docType: String? = null
     ): Response<List<DocumentRequestDto>>
 
-    // NOTE: Not yet present in the Swagger spec you shared - backend team needs to add
-    // this multipart endpoint. The app sends the raw file here first, then uses the
-    // returned s3Link in a follow-up call to saveDocument() above. See README.
     @Multipart
-    @POST("api/v1/document/upload")
+    @POST("api/v1/file/upload")
     suspend fun uploadDocumentFile(
         @Part file: MultipartBody.Part
     ): Response<UploadResponse>

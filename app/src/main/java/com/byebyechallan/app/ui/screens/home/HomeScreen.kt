@@ -109,9 +109,13 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(state.profiles) { card ->
+                        val profileName = card.profile.profileName ?: "Unknown Profile"
+                        val vehicleCount = card.profile.vehicleCount?:0
                         ProfileCard(
                             data = card,
-                            onClick = { onProfileClick(card.profile.id, card.profile.profileName) }
+                            profileName = profileName,
+                            vehicleCount    = vehicleCount,
+                            onClick = { onProfileClick(card.profile.id, profileName) }
                         )
                     }
                     item { Spacer(modifier = Modifier.height(72.dp)) }
@@ -122,7 +126,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun ProfileCard(data: ProfileCardData, onClick: () -> Unit) {
+private fun ProfileCard(data: ProfileCardData, profileName: String, vehicleCount: Int, onClick: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -132,12 +136,12 @@ private fun ProfileCard(data: ProfileCardData, onClick: () -> Unit) {
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(data.profile.profileName, style = MaterialTheme.typography.titleLarge)
+                Text(profileName, style = MaterialTheme.typography.titleLarge)
             }
 
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "${data.vehicleCount} vehicle${if (data.vehicleCount == 1) "" else "s"}",
+                text = "$vehicleCount vehicle${if (vehicleCount == 1) "" else "s"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

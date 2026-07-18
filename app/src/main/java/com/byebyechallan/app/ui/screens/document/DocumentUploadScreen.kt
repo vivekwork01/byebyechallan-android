@@ -85,7 +85,7 @@ fun DocumentUploadScreen(
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Document saved successfully", Toast.LENGTH_SHORT).show()
             onSaved()
         }
     }

@@ -88,11 +88,12 @@ class DocumentUploadViewModel(
                 docTemplateId = docTemplateId,
                 docName = docName,
                 docId = _uiState.value.existingDoc?.docId ?: "${docTemplateId}_${System.currentTimeMillis()}",
-                expiryDate = LocalDateTime.now().toString(),
+                expiryDate = expiryDate.atStartOfDay().toString(),
                 notificationTime = LocalDateTime.now().toString(),
                 email = notifyEmail,
                 whatsApp = notifyWhatsApp,
                 sms = notifySms,
+                uploaded = true,
                 s3Link = s3Link
             )
 

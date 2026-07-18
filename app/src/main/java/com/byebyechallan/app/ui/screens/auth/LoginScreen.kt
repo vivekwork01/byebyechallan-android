@@ -47,7 +47,7 @@ fun LoginScreen(
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
-            Toast.makeText(context, "Logged in", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
             onLoginSuccess()
         }
     }

@@ -22,18 +22,15 @@ data class LocalVehicle(
 
 /**
  * KNOWN LIMITATION - PLEASE READ:
- * The backend API (as of the Swagger spec provided) has no endpoint to list all
- * vehicles under a profile - only to fetch documents for a vehicle you already
- * know the registration number of. Since vehicles are created implicitly on
- * first document upload (per your decision), this class caches the list of
- * vehicles locally on-device so the Profile screen has something to display.
+ * The backend list endpoint returns the registration number and vehicle name,
+ * but not the country/state/registration/vehicle-type fields needed to reload
+ * the document checklist. This cache preserves those local selections after a
+ * vehicle is added, and the profile screen merges them with the server list.
  *
  * TRADE-OFF: if the user reinstalls the app or switches devices, this local
  * list is lost (though their actual document data on the backend is safe).
- * RECOMMENDED FIX: ask backend to add GET /api/v1/user/{userId}/profile/{profileId}/vehicles
- * that returns distinct vehicle registration numbers + their stored type info.
- * Once that exists, swap this local cache for a real repository call - the rest
- * of the app's screens don't need to change.
+ * RECOMMENDED FIX: extend GET /api/v1/user/{userId}/profile/{profileId}/all-vehicle
+ * to include country, state, registration type, and vehicle type.
  */
 class VehicleLocalStore(private val context: Context) {
 

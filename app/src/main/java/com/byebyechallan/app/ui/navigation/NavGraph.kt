@@ -173,6 +173,7 @@ fun AppNavGraph(app: ByeByeChallanApp) {
 
             VehicleDetailScreen(
                 app = app,
+                navController = navController,
                 profileId = profileId,
                 vehicleRegNo = vehicleRegNo,
                 country = country,
@@ -210,7 +211,10 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                 docTemplateId = args.getString("docTemplateId") ?: "",
                 docName = args.getString("docName") ?: "",
                 onBack = { navController.popBackStack() },
-                onSaved = { navController.popBackStack() }
+                onSaved = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("refreshDocuments", true)
+                    navController.popBackStack()
+                }
             )
         }
     }

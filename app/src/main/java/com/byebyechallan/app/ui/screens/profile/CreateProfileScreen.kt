@@ -35,7 +35,7 @@ fun CreateProfileScreen(
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
-            Toast.makeText(context, "Profile created", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Profile added successfully", Toast.LENGTH_SHORT).show()
             onProfileCreated()
         }
     }

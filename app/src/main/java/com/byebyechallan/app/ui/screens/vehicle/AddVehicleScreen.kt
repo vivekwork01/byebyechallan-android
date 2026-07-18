@@ -52,7 +52,7 @@ fun AddVehicleScreen(
 
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
-            Toast.makeText(context, "Vehicle added", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Vehicle added successfully", Toast.LENGTH_SHORT).show()
         }
     }
 

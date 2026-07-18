@@ -8,8 +8,11 @@ data class ProfileRequestDto(
 
 data class ProfileDto(
     val id: Long,
+
+    @SerializedName("userId")
     val userId: Long,
-    val profileName: String,
+    @SerializedName("profileName")
+    val profileName: String?,
     @SerializedName("vehicleCount")
     val vehicleCount: Int = 0
 )
@@ -25,12 +28,12 @@ data class VehicleRequestDto(
 // Response returned after adding a vehicle to a profile (includes created docs).
 data class ProfileVehicleResponseDto(
     val id: Long,
+    @SerializedName("profileVehicleName")
     val profileVehicleName: String?,
-    // Backend may return different names for the registration field; include
-    // multiple nullable properties and prefer the first non-null when mapping.
+
+    @SerializedName("vehicleRegistrationNo")
     val vehicleRegistrationNo: String? = null,
-    val vehicleRegistrationNumber: String? = null,
-    val registrationNo: String? = null,
+
+    @SerializedName("docs")
     val docs: List<com.byebyechallan.app.data.model.UserDocumentDto> = emptyList()
 )
-

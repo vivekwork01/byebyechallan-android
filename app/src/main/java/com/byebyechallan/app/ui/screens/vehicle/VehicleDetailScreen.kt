@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.byebyechallan.app.ByeByeChallanApp
 import com.byebyechallan.app.data.model.DocumentChecklistItem
 import com.byebyechallan.app.ui.components.EmptyState
@@ -30,6 +32,7 @@ import com.byebyechallan.app.util.DateUtils
 @Composable
 fun VehicleDetailScreen(
     app: ByeByeChallanApp,
+    navController: NavHostController,
     profileId: Long,
     vehicleRegNo: String,
     country: String,
@@ -46,6 +49,16 @@ fun VehicleDetailScreen(
         )
     }
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { backStackEntry ->
+            val refresh = backStackEntry.savedStateHandle.get<Boolean>("refreshDocuments") ?: false
+            if (refresh) {
+                viewModel.load()
+                backStackEntry.savedStateHandle.set("refreshDocuments", false)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

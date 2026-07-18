@@ -62,18 +62,17 @@ class DocumentRepository(private val api: ApiService) {
 
     /**
      * Step 1 of upload flow: send the raw file to the backend's multipart endpoint.
-     * NOTE: this endpoint (POST /api/v1/document/upload) is not yet in the Swagger
-     * spec - backend needs to implement it. See README "Backend To-Do".
      */
     suspend fun uploadFile(file: File): ApiResult<UploadResponse> {
         return try {
             val requestFile = file.asRequestBody("*/*".toMediaTypeOrNull())
             val filePart = MultipartBody.Part.createFormData("file", file.name, requestFile)
             val response = api.uploadDocumentFile(filePart)
-            if (response.isSuccessful && response.body() != null) {
-                ApiResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body?.s3Link != null) {
+                ApiResult.Success(body)
             } else {
-                ApiResult.Error("File upload failed (${response.code()}). Check that the backend upload endpoint exists.")
+                ApiResult.Error("File upload failed (${response.code()}).")
             }
         } catch (e: Exception) {
             ApiResult.Error(e.message ?: "Network error while uploading file.")
