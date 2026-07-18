@@ -110,6 +110,7 @@ class AddVehicleViewModel(
             val documents = when (checklistResult) {
                 is ApiResult.Success -> checklistResult.data.map { template ->
                     com.byebyechallan.app.data.model.DocumentRequestDto(
+                        id=template.id,
                         docTemplateId = template.docId,
                         docName = template.docName,
                         docId = "",

@@ -2,6 +2,7 @@ package com.byebyechallan.app.data.model
 
 // What the app sends when saving/updating a document record.
 data class DocumentRequestDto(
+    val id: Long,
     val docTemplateId: String,
     val docName: String,
     val docId: String,

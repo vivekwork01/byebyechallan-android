@@ -85,6 +85,7 @@ class DocumentUploadViewModel(
             // schema is ambiguous from the Swagger spec alone - confirm with backend
             // and adjust if this assumption is wrong.
             val request = DocumentRequestDto(
+                id=_uiState.value.existingDoc?.id ?: 0L,
                 docTemplateId = docTemplateId,
                 docName = docName,
                 docId = _uiState.value.existingDoc?.docId ?: "${docTemplateId}_${System.currentTimeMillis()}",

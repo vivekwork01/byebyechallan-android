@@ -84,6 +84,7 @@ class VehicleDetailViewModel(
         val templateId = document.docTemplateId ?: document.docId.orEmpty()
         return DocumentChecklistItem(
             template = DocumentRequestDto(
+                id=document.id,
                 docTemplateId = templateId,
                 docName = document.docName ?: "Document",
                 docId = templateId,
