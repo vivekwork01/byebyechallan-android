@@ -151,14 +151,25 @@ fun DocumentUploadScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ---- Expiry date ----
-            OutlinedButton(
-                onClick = { showDatePicker = true },
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Filled.CalendarToday, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(expiryDate?.toString() ?: "Select Expiry Date")
+                Text(
+                    text = "Expiry Date",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Filled.CalendarToday, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(expiryDate?.toString() ?: "Select Expiry Date")
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
