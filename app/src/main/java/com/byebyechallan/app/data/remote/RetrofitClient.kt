@@ -52,7 +52,6 @@ object RetrofitClient {
 
         val gson = GsonBuilder()
             .setLenient()
-            .setFieldNamingPolicy(com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .create()
         return Retrofit.Builder()
             .baseUrl(BuildConfig.BASE_URL)
