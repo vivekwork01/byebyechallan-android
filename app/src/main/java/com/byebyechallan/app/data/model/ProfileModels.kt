@@ -1,19 +1,13 @@
 package com.byebyechallan.app.data.model
 
-import com.google.gson.annotations.SerializedName
-
 data class ProfileRequestDto(
     val profileName: String
 )
 
 data class ProfileDto(
     val id: Long,
-
-    @SerializedName("userId")
     val userId: Long,
-    @SerializedName("profileName")
     val profileName: String?,
-    @SerializedName("vehicleCount")
     val vehicleCount: Int = 0
 )
 
@@ -28,12 +22,7 @@ data class VehicleRequestDto(
 // Response returned after adding a vehicle to a profile (includes created docs).
 data class ProfileVehicleResponseDto(
     val id: Long,
-    @SerializedName("profileVehicleName")
     val profileVehicleName: String?,
-
-    @SerializedName("vehicleRegistrationNo")
     val vehicleRegistrationNo: String? = null,
-
-    @SerializedName("docs")
     val docs: List<com.byebyechallan.app.data.model.UserDocumentDto> = emptyList()
 )

@@ -3,6 +3,8 @@ package com.byebyechallan.app.ui.screens.vehicle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.byebyechallan.app.data.model.DocumentChecklistItem
+import com.byebyechallan.app.data.model.DocumentRequestDto
+import com.byebyechallan.app.data.model.UserDocumentDto
 import com.byebyechallan.app.data.remote.SessionManager
 import com.byebyechallan.app.data.repository.ApiResult
 import com.byebyechallan.app.data.repository.DocumentRepository
@@ -43,6 +45,21 @@ class VehicleDetailViewModel(
                 return@launch
             }
 
+            if (country.isBlank() || state.isBlank() || registrationType.isBlank() || vehicleType.isBlank()) {
+                when (val uploadedResult = documentRepository.getUploadedDocuments(userId, profileId, vehicleRegNo)) {
+                    is ApiResult.Success -> {
+                        _uiState.value = VehicleDetailUiState(
+                            isLoading = false,
+                            items = uploadedResult.data.map(::uploadedDocumentItem)
+                        )
+                    }
+                    is ApiResult.Error -> {
+                        _uiState.value = VehicleDetailUiState(errorMessage = uploadedResult.message, isLoading = false)
+                    }
+                }
+                return@launch
+            }
+
             val checklistResult = documentRepository.getDocumentChecklist(country, state, registrationType, vehicleType)
             val uploadedResult = documentRepository.getUploadedDocuments(userId, profileId, vehicleRegNo)
 
@@ -61,5 +78,24 @@ class VehicleDetailViewModel(
 
             _uiState.value = VehicleDetailUiState(isLoading = false, items = merged)
         }
+    }
+
+    private fun uploadedDocumentItem(document: UserDocumentDto): DocumentChecklistItem {
+        val templateId = document.docTemplateId ?: document.docId.orEmpty()
+        return DocumentChecklistItem(
+            template = DocumentRequestDto(
+                docTemplateId = templateId,
+                docName = document.docName ?: "Document",
+                docId = templateId,
+                expiryDate = document.expiryDate,
+                notificationTime = document.notificationTime,
+                email = document.email,
+                whatsApp = document.whatsApp,
+                sms = document.sms,
+                uploaded = true,
+                s3Link = document.s3Link
+            ),
+            uploaded = document
+        )
     }
 }

@@ -23,7 +23,7 @@ sealed class Screen(val route: String) {
     }
 
     object VehicleDetail : Screen(
-        "vehicle_detail/{profileId}/{vehicleRegNo}/{country}/{state}/{registrationType}/{vehicleType}"
+        "vehicle_detail/{profileId}/{vehicleRegNo}?country={country}&state={state}&registrationType={registrationType}&vehicleType={vehicleType}"
     ) {
         fun createRoute(
             profileId: Long,
@@ -32,7 +32,11 @@ sealed class Screen(val route: String) {
             state: String,
             registrationType: String,
             vehicleType: String
-        ) = "vehicle_detail/$profileId/${Uri.encode(vehicleRegNo)}/${Uri.encode(country)}/${Uri.encode(state)}/${Uri.encode(registrationType)}/${Uri.encode(vehicleType)}"
+        ) = "vehicle_detail/$profileId/${Uri.encode(vehicleRegNo)}" +
+            "?country=${Uri.encode(country)}" +
+            "&state=${Uri.encode(state)}" +
+            "&registrationType=${Uri.encode(registrationType)}" +
+            "&vehicleType=${Uri.encode(vehicleType)}"
     }
 
     object DocumentUpload : Screen(

@@ -157,10 +157,22 @@ fun AppNavGraph(app: ByeByeChallanApp) {
             arguments = listOf(
                 navArgument("profileId") { type = NavType.LongType },
                 navArgument("vehicleRegNo") { type = NavType.StringType },
-                navArgument("country") { type = NavType.StringType },
-                navArgument("state") { type = NavType.StringType },
-                navArgument("registrationType") { type = NavType.StringType },
-                navArgument("vehicleType") { type = NavType.StringType }
+                navArgument("country") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("state") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("registrationType") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("vehicleType") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
             )
         ) { backStackEntry ->
             val args = backStackEntry.arguments!!

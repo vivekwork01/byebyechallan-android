@@ -1,7 +1,5 @@
 package com.byebyechallan.app.data.model
 
-import com.google.gson.annotations.SerializedName
-
 // What the app sends when saving/updating a document record.
 data class DocumentRequestDto(
     val docTemplateId: String,
@@ -19,50 +17,20 @@ data class DocumentRequestDto(
 // What the backend returns for a saved/existing document
 data class UserDocumentDto(
     val id: Long,
-
-    @SerializedName("userId")
     val userId: Long,
-
-    @SerializedName("profileId")
     val profileId: Long,
-
-    @SerializedName("vehicleRegistrationNo")
     val vehicleRegistrationNo: String,
-
-    @SerializedName("docTemplateId")
     val docTemplateId: String?,
-
-    @SerializedName("docId")
     val docId: String?,
-
-    @SerializedName("docName")
     val docName: String?,
-
-    @SerializedName("s3Link")
     val s3Link: String?,
-
-    @SerializedName("uploadedDate")
     val uploadedDate: String?,
-
-    @SerializedName("expiryDate")
     val expiryDate: String?,
-
-    @SerializedName("notificationTime")
     val notificationTime: String?,
-
-    @SerializedName("createDate")
     val createDate: String?,
-
-    @SerializedName("updatedDate")
     val updatedDate: String?,
-
-    @SerializedName("email")
     val email: Boolean = false,
-
-    @SerializedName("whatsApp")
     val whatsApp: Boolean = false,
-
-    @SerializedName("sms")
     val sms: Boolean = false
 )
 
