@@ -80,7 +80,7 @@ class DocumentRepository(private val api: ApiService) {
             val filePart = MultipartBody.Part.createFormData("file", file.name, requestFile)
             val response = api.uploadDocumentFile(userId, filePart)
             val body = response.body()
-            if (response.isSuccessful && body != null && body.resolvedFileName != null) {
+            if (response.isSuccessful && body != null && body.storedFileName != null) {
                 ApiResult.Success(body)
             } else {
                 ApiResult.Error("File upload failed (${response.code()}).")

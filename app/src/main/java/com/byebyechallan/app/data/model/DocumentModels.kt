@@ -48,8 +48,10 @@ data class UserDocumentDto(
     }
 
     fun resolvePreviewUrl(userId: Long, baseUrl: String): String? {
-        displayFileName()?.let { name ->
-            return com.byebyechallan.app.util.FileUrlBuilder.downloadUrl(baseUrl, userId, name)
+        val serverFileKey = s3Link?.substringAfterLast('/')
+            ?.takeUnless { it.isBlank() || it == "No Link Available" }
+        if (serverFileKey != null) {
+            return com.byebyechallan.app.util.FileUrlBuilder.downloadUrl(baseUrl, userId, serverFileKey)
         }
         return s3Link?.takeUnless { it.isBlank() || it == "No Link Available" }
     }
@@ -58,13 +60,19 @@ data class UserDocumentDto(
 
 data class FileResponseDto(
     val fileName: String? = null,
+    val originalFileName: String? = null,
     val filePath: String? = null,
     val fileUrl: String? = null
 ) {
-    val resolvedFileName: String?
+    /** Server-side stored name used for download API path. */
+    val storedFileName: String?
         get() = fileName?.takeIf { it.isNotBlank() }
             ?: filePath?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
             ?: fileUrl?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
+
+    /** Human-readable name shown in the UI and saved on the document record. */
+    val displayFileName: String?
+        get() = originalFileName?.takeIf { it.isNotBlank() } ?: storedFileName
 }
 
 // A merged view used on the Android side: combines a checklist item (what the backend returns)

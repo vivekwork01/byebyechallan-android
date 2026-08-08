@@ -69,7 +69,7 @@ class DocumentUploadViewModel(
             if (file != null) {
                 when (val uploadResult = documentRepository.uploadFile(userId, file)) {
                     is ApiResult.Success -> {
-                        savedFileName = uploadResult.data.resolvedFileName ?: file.name
+                        savedFileName = uploadResult.data.displayFileName ?: file.name
                     }
                     is ApiResult.Error -> {
                         _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = uploadResult.message)
