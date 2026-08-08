@@ -49,13 +49,17 @@ fun HomeScreen(
     var showMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Listen for a refresh signal set by child screens (e.g. CreateProfile) and reload
+    // Refresh profiles whenever we resume viewing this screen
     LaunchedEffect(navController) {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
-            val refresh = backStackEntry.savedStateHandle.get<Boolean>("refreshProfiles") ?: false
-            if (refresh) {
+            if (backStackEntry.destination.route == "home") {
+                // Always refresh when HomeScreen becomes active
                 viewModel.loadProfiles()
-                backStackEntry.savedStateHandle.set("refreshProfiles", false)
+                // Also check for explicit refresh flag
+                val refresh = backStackEntry.savedStateHandle.get<Boolean>("refreshProfiles") ?: false
+                if (refresh) {
+                    backStackEntry.savedStateHandle.set("refreshProfiles", false)
+                }
             }
         }
     }

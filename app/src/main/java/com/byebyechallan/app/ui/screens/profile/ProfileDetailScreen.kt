@@ -43,14 +43,14 @@ fun ProfileDetailScreen(
         )
     }
     val state by viewModel.uiState.collectAsState()
-
-    // Observe flag set by AddVehicle and refresh vehicles when requested
-    LaunchedEffect(navController) {
-        navController.currentBackStackEntryFlow.collect { backStackEntry ->
-            val refresh = backStackEntry.savedStateHandle.get<Boolean>("refreshVehicles") ?: false
+    
+    val currentBackStackEntry = navController.currentBackStackEntry
+    LaunchedEffect(currentBackStackEntry) {
+        currentBackStackEntry?.savedStateHandle?.let { savedState ->
+            val refresh = savedState.get<Boolean>("refreshVehicles") ?: false
             if (refresh) {
                 viewModel.loadVehicles()
-                backStackEntry.savedStateHandle.set("refreshVehicles", false)
+                savedState.set("refreshVehicles", false)
             }
         }
     }
