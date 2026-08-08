@@ -65,11 +65,14 @@ class DocumentUploadViewModel(
 
         _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
         viewModelScope.launch {
-            var savedFileName = _uiState.value.existingDoc?.displayFileName()
+            var savedOriginalFileName = _uiState.value.existingDoc?.displayFileName()
+            var savedS3FileName = _uiState.value.existingDoc?.storedFileName()
             if (file != null) {
                 when (val uploadResult = documentRepository.uploadFile(userId, file)) {
                     is ApiResult.Success -> {
-                        savedFileName = uploadResult.data.displayFileName ?: file.name
+                        savedS3FileName = uploadResult.data.storedFileName
+                            ?: uploadResult.data.fileUrl?.substringAfterLast('/')
+                        savedOriginalFileName = uploadResult.data.originalDisplayName ?: file.name
                     }
                     is ApiResult.Error -> {
                         _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = uploadResult.message)
@@ -85,7 +88,8 @@ class DocumentUploadViewModel(
                 docId = _uiState.value.existingDoc?.docId ?: "${docTemplateId}_${System.currentTimeMillis()}",
                 expiryDate = expiryDate.atStartOfDay().toString(),
                 notificationTime = LocalDateTime.now().toString(),
-                fileName = savedFileName,
+                fileName = savedOriginalFileName,
+                s3FileName = savedS3FileName,
                 email = notifyEmail,
                 whatsApp = notifyWhatsApp,
                 sms = notifySms,

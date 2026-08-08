@@ -1,5 +1,7 @@
 package com.byebyechallan.app.data.model
 
+import com.byebyechallan.app.util.FileUrlBuilder
+
 // What the app sends when saving/updating a document record.
 data class DocumentRequestDto(
     val id: Long = 0L,
@@ -9,6 +11,7 @@ data class DocumentRequestDto(
     val expiryDate: String?,
     val notificationTime: String?,
     val fileName: String? = null,
+    val s3FileName: String? = null,
     val email: Boolean = false,
     val whatsApp: Boolean = false,
     val sms: Boolean = false,
@@ -26,6 +29,7 @@ data class UserDocumentDto(
     val docName: String?,
     val s3Link: String?,
     val fileName: String? = null,
+    val s3FileName: String? = null,
     val uploaded: Boolean = false,
     val uploadedDate: String?,
     val expiryDate: String?,
@@ -37,23 +41,65 @@ data class UserDocumentDto(
     val sms: Boolean = false
 ) {
     fun hasValidFile(): Boolean {
-        val hasFileName = !fileName.isNullOrBlank() && fileName != "No File Name"
+        val hasStoredName = !s3FileName.isNullOrBlank()
+        val hasDisplayName = !fileName.isNullOrBlank() && fileName != "No File Name"
         val hasLegacyLink = !s3Link.isNullOrBlank() && s3Link != "No Link Available"
-        return uploaded && (hasFileName || hasLegacyLink)
+        return uploaded && (hasStoredName || hasDisplayName || hasLegacyLink)
     }
 
+    /** Server-stored file key — never the display/original fileName. */
+    fun storedFileName(): String? {
+        return s3FileName?.takeUnless { it.isBlank() }
+            ?: serverFileKeyFromLink()
+    }
+
+    /** Human-readable name shown in the UI. */
     fun displayFileName(): String? {
         return fileName?.takeUnless { it.isBlank() || it == "No File Name" }
-            ?: s3Link?.substringAfterLast('/')?.takeUnless { it.isBlank() || it == "No Link Available" }
     }
 
+    /** Download/preview URL — always derived from s3Link or s3FileName, never from fileName. */
     fun resolvePreviewUrl(userId: Long, baseUrl: String): String? {
-        val serverFileKey = s3Link?.substringAfterLast('/')
-            ?.takeUnless { it.isBlank() || it == "No Link Available" }
-        if (serverFileKey != null) {
-            return com.byebyechallan.app.util.FileUrlBuilder.downloadUrl(baseUrl, userId, serverFileKey)
+        val link = s3Link?.takeUnless { it.isBlank() || it == "No Link Available" }
+        if (!link.isNullOrBlank()) {
+            return when {
+                link.startsWith("http") -> rewriteHost(link, baseUrl)
+                link.startsWith("/") -> "${baseUrl.trimEnd('/')}$link"
+                else -> FileUrlBuilder.downloadUrl(baseUrl, userId, link)
+            }
         }
-        return s3Link?.takeUnless { it.isBlank() || it == "No Link Available" }
+
+        storedFileName()?.let { key ->
+            return FileUrlBuilder.downloadUrl(baseUrl, userId, key)
+        }
+        return null
+    }
+
+    private fun serverFileKeyFromLink(): String? {
+        return s3Link?.substringAfterLast('/')
+            ?.takeUnless { it.isBlank() || it == "No Link Available" }
+    }
+
+    private fun rewriteHost(url: String, baseUrl: String): String {
+        return try {
+            val configured = java.net.URI(baseUrl)
+            val original = java.net.URI(url)
+            if (original.host == "localhost" || original.host == "127.0.0.1") {
+                java.net.URI(
+                    original.scheme,
+                    original.userInfo,
+                    configured.host,
+                    if (configured.port != -1) configured.port else original.port,
+                    original.path,
+                    original.query,
+                    original.fragment
+                ).toString()
+            } else {
+                url
+            }
+        } catch (e: Exception) {
+            url
+        }
     }
 }
 
@@ -70,9 +116,9 @@ data class FileResponseDto(
             ?: filePath?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
             ?: fileUrl?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
 
-    /** Human-readable name shown in the UI and saved on the document record. */
-    val displayFileName: String?
-        get() = originalFileName?.takeIf { it.isNotBlank() } ?: storedFileName
+    /** Human-readable original name from the device (for optional UI only). */
+    val originalDisplayName: String?
+        get() = originalFileName?.takeIf { it.isNotBlank() }
 }
 
 // A merged view used on the Android side: combines a checklist item (what the backend returns)

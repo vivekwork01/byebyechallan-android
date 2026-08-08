@@ -90,7 +90,6 @@ class VehicleDetailViewModel(
                 email = document.email,
                 whatsApp = document.whatsApp,
                 sms = document.sms,
-                fileName = document.fileName,
                 uploaded = document.uploaded
             ),
             uploaded = document

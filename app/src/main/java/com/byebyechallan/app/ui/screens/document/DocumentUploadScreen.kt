@@ -30,6 +30,7 @@ import com.byebyechallan.app.BuildConfig
 import com.byebyechallan.app.ui.components.ErrorBanner
 import com.byebyechallan.app.ui.components.FullScreenLoading
 import com.byebyechallan.app.ui.components.PrimaryButton
+import com.byebyechallan.app.util.AuthenticatedImageLoader
 import com.byebyechallan.app.util.DateUtils
 import com.byebyechallan.app.util.FileUtils
 import java.time.Instant
@@ -115,9 +116,9 @@ fun DocumentUploadScreen(
     } else {
         null
     }
-    val displayFileName = pickedFileName
-        ?: uiState.existingDoc?.displayFileName()
-    val showPreview = previewUri != null || (hasExistingFile && previewUrl != null)
+    val displayFileName = pickedFileName ?: uiState.existingDoc?.displayFileName()
+    val showPreview = pickedFileUri != null || hasExistingFile
+    val imageLoader = remember(authToken) { AuthenticatedImageLoader.create(context, authToken) }
 
     Scaffold(
         topBar = {
@@ -156,8 +157,9 @@ fun DocumentUploadScreen(
                 DocumentPreviewCard(
                     previewUri = previewUri,
                     previewUrl = previewUrl,
-                    fileName = displayFileName,
-                    authToken = authToken
+                    displayFileName = displayFileName,
+                    previewFileKey = uiState.existingDoc?.storedFileName(),
+                    imageLoader = imageLoader
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -178,23 +180,19 @@ fun DocumentUploadScreen(
                 ) {
                     Icon(Icons.Filled.UploadFile, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (pickedFileName != null) "Selected: $pickedFileName" else "Choose File (PDF or Image)")
+                    Text("Choose File (PDF or Image)")
                 }
             }
 
-            if (pickedFileUri != null && pickedFileName != null) {
+            if (!displayFileName.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("New file selected: $pickedFileName", style = MaterialTheme.typography.bodyMedium)
-                }
-            } else if (hasExistingFile && displayFileName != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Uploaded file: $displayFileName", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "Uploaded file: $displayFileName",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
 
@@ -280,12 +278,19 @@ fun DocumentUploadScreen(
 private fun DocumentPreviewCard(
     previewUri: Uri?,
     previewUrl: String?,
-    fileName: String?,
-    authToken: String?
+    displayFileName: String?,
+    previewFileKey: String?,
+    imageLoader: coil.ImageLoader
 ) {
     val context = LocalContext.current
     val previewSource = previewUri ?: previewUrl
-    val isImage = previewSource?.let(::isImageSource) == true
+    val isImage = when {
+        FileUtils.isImageFile(displayFileName) -> true
+        FileUtils.isImageFile(previewFileKey) -> true
+        previewUri != null -> FileUtils.isImageUri(context, previewUri)
+        else -> false
+    }
+    val isPdf = FileUtils.isPdfFile(displayFileName) || FileUtils.isPdfFile(previewFileKey)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -296,15 +301,13 @@ private fun DocumentPreviewCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             if (isImage && previewSource != null) {
-                val imageRequestBuilder = ImageRequest.Builder(context)
-                    .data(previewSource)
-                    .crossfade(true)
-                if (!authToken.isNullOrBlank() && previewUri == null) {
-                    imageRequestBuilder.addHeader("Authorization", "Bearer $authToken")
-                }
                 AsyncImage(
-                    model = imageRequestBuilder.build(),
-                    contentDescription = fileName ?: "Document preview",
+                    model = ImageRequest.Builder(context)
+                        .data(previewSource)
+                        .crossfade(true)
+                        .build(),
+                    imageLoader = imageLoader,
+                    contentDescription = displayFileName ?: "Document preview",
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 180.dp, max = 320.dp)
@@ -328,29 +331,15 @@ private fun DocumentPreviewCard(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = fileName ?: "Document file",
+                            text = if (isPdf) "PDF preview is not available" else "Preview not available",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
-
-            if (!fileName.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "File: $fileName",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
-}
-
-private fun isImageSource(source: Any): Boolean {
-    val value = source.toString().lowercase()
-    return listOf(".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp").any { value.contains(it) }
 }
 
 @Composable

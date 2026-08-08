@@ -31,6 +31,20 @@ object FileUtils {
         return getFileName(context, uri)
     }
 
+    fun isImageFile(fileName: String?): Boolean {
+        val lower = fileName?.lowercase().orEmpty()
+        return listOf(".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp").any { lower.endsWith(it) }
+    }
+
+    fun isPdfFile(fileName: String?): Boolean {
+        return fileName?.lowercase()?.endsWith(".pdf") == true
+    }
+
+    fun isImageUri(context: Context, uri: Uri): Boolean {
+        val mimeType = context.contentResolver.getType(uri)
+        return mimeType?.startsWith("image/") == true
+    }
+
     private fun getFileName(context: Context, uri: Uri): String? {
         var name: String? = null
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
