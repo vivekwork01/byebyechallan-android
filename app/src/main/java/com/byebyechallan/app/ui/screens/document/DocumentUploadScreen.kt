@@ -5,28 +5,23 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.byebyechallan.app.ByeByeChallanApp
 import com.byebyechallan.app.BuildConfig
+import com.byebyechallan.app.ui.components.DocumentPreviewCard
 import com.byebyechallan.app.ui.components.ErrorBanner
 import com.byebyechallan.app.ui.components.FullScreenLoading
 import com.byebyechallan.app.ui.components.PrimaryButton
@@ -159,7 +154,8 @@ fun DocumentUploadScreen(
                     previewUrl = previewUrl,
                     displayFileName = displayFileName,
                     previewFileKey = uiState.existingDoc?.storedFileName(),
-                    imageLoader = imageLoader
+                    imageLoader = imageLoader,
+                    authToken = authToken
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -180,7 +176,7 @@ fun DocumentUploadScreen(
                 ) {
                     Icon(Icons.Filled.UploadFile, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Choose File (PDF or Image)")
+                    Text("Choose File (PDF, Image, or Document)")
                 }
             }
 
@@ -270,74 +266,6 @@ fun DocumentUploadScreen(
             }
         ) {
             DatePicker(state = datePickerState)
-        }
-    }
-}
-
-@Composable
-private fun DocumentPreviewCard(
-    previewUri: Uri?,
-    previewUrl: String?,
-    displayFileName: String?,
-    previewFileKey: String?,
-    imageLoader: coil.ImageLoader
-) {
-    val context = LocalContext.current
-    val previewSource = previewUri ?: previewUrl
-    val isImage = when {
-        FileUtils.isImageFile(displayFileName) -> true
-        FileUtils.isImageFile(previewFileKey) -> true
-        previewUri != null -> FileUtils.isImageUri(context, previewUri)
-        else -> false
-    }
-    val isPdf = FileUtils.isPdfFile(displayFileName) || FileUtils.isPdfFile(previewFileKey)
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Document Preview", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (isImage && previewSource != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(previewSource)
-                        .crossfade(true)
-                        .build(),
-                    imageLoader = imageLoader,
-                    contentDescription = displayFileName ?: "Document preview",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 180.dp, max = 320.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Filled.PictureAsPdf,
-                            contentDescription = null,
-                            modifier = Modifier.size(56.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (isPdf) "PDF preview is not available" else "Preview not available",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
         }
     }
 }
