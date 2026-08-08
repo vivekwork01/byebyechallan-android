@@ -55,21 +55,32 @@ class DocumentRepository(private val api: ApiService) {
         uploaded: List<UserDocumentDto>
     ): List<DocumentChecklistItem> {
         return templates.map { template ->
-            val match = uploaded.find { it.docTemplateId == template.docId }
-            DocumentChecklistItem(template = template, uploaded = match)
+            val templateKey = template.docTemplateId.ifBlank { template.docId }
+            val match = uploaded.find {
+                it.docTemplateId == templateKey ||
+                    it.docTemplateId == template.docId ||
+                    it.docTemplateId == template.docTemplateId
+            }
+            DocumentChecklistItem(
+                template = template.copy(
+                    docTemplateId = templateKey,
+                    docId = templateKey.ifBlank { template.docId }
+                ),
+                uploaded = match
+            )
         }
     }
 
     /**
      * Step 1 of upload flow: send the raw file to the backend's multipart endpoint.
      */
-    suspend fun uploadFile(file: File): ApiResult<UploadResponse> {
+    suspend fun uploadFile(userId: Long, file: File): ApiResult<FileResponseDto> {
         return try {
             val requestFile = file.asRequestBody("*/*".toMediaTypeOrNull())
             val filePart = MultipartBody.Part.createFormData("file", file.name, requestFile)
-            val response = api.uploadDocumentFile(filePart)
+            val response = api.uploadDocumentFile(userId, filePart)
             val body = response.body()
-            if (response.isSuccessful && body?.s3Link != null) {
+            if (response.isSuccessful && body != null && body.resolvedFileName != null) {
                 ApiResult.Success(body)
             } else {
                 ApiResult.Error("File upload failed (${response.code()}).")
@@ -79,7 +90,7 @@ class DocumentRepository(private val api: ApiService) {
         }
     }
 
-    /** Step 2 of upload flow: save the document record (with the s3Link from step 1). */
+    /** Step 2 of upload flow: save the document record (with fileName from step 1). */
     suspend fun saveDocument(
         userId: Long,
         profileId: Long,

@@ -2,8 +2,7 @@ package com.byebyechallan.app.ui.screens.vehicle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.byebyechallan.app.data.local.LocalVehicle
-import com.byebyechallan.app.data.local.VehicleLocalStore
+import com.byebyechallan.app.data.model.VehicleSummary
 import com.byebyechallan.app.data.model.CountryDto
 import com.byebyechallan.app.data.model.RegistrationDto
 import com.byebyechallan.app.data.model.StateDto
@@ -34,8 +33,7 @@ class AddVehicleViewModel(
     private val masterRepository: MasterRepository,
     private val documentRepository: com.byebyechallan.app.data.repository.DocumentRepository,
     private val profileRepository: com.byebyechallan.app.data.repository.ProfileRepository,
-    private val sessionManager: com.byebyechallan.app.data.remote.SessionManager,
-    private val vehicleLocalStore: VehicleLocalStore
+    private val sessionManager: com.byebyechallan.app.data.remote.SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddVehicleUiState())
@@ -89,7 +87,7 @@ class AddVehicleViewModel(
         state: String,
         registrationType: String,
         vehicleTypeId: String,
-        onSaved: (LocalVehicle) -> Unit
+        onSaved: (VehicleSummary) -> Unit
     ) {
         if (registrationNo.isBlank() || country.isBlank() || state.isBlank() ||
             registrationType.isBlank() || vehicleTypeId.isBlank()
@@ -119,7 +117,7 @@ class AddVehicleViewModel(
                         email = false,
                         whatsApp = false,
                         sms = false,
-                        s3Link = null
+                        uploaded = false
                     )
                 }
                 is ApiResult.Error -> {
@@ -142,16 +140,14 @@ class AddVehicleViewModel(
             val addResult = profileRepository.addVehicleToProfile(userId, profileId, registrationNo.trim().uppercase(), vehicleRequest)
             when (addResult) {
                 is ApiResult.Success -> {
-                    val vehicle = LocalVehicle(
-                        profileId = profileId,
+                    val vehicle = VehicleSummary(
                         registrationNo = registrationNo.trim().uppercase(),
+                        vehicleName = vehicleName.trim().ifEmpty { registrationNo.trim().uppercase() },
                         country = country,
                         state = state,
                         registrationType = registrationType,
-                        vehicleType = vehicleTypeId,
-                        vehicleName = vehicleName.trim().ifEmpty { registrationNo.trim().uppercase() }
+                        vehicleType = vehicleTypeId
                     )
-                    vehicleLocalStore.addVehicle(vehicle)
                     _uiState.value = _uiState.value.copy(isSaving = false, isSuccess = true)
                     onSaved(vehicle)
                 }

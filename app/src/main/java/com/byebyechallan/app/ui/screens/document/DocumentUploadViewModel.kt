@@ -53,7 +53,7 @@ class DocumentUploadViewModel(
         notifyWhatsApp: Boolean,
         notifySms: Boolean
     ) {
-        val hasExistingFile = _uiState.value.existingDoc?.s3Link != null
+        val hasExistingFile = _uiState.value.existingDoc?.hasValidFile() == true
         if (file == null && !hasExistingFile) {
             _uiState.value = _uiState.value.copy(errorMessage = "Please select a file to upload.")
             return
@@ -65,12 +65,12 @@ class DocumentUploadViewModel(
 
         _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
         viewModelScope.launch {
-            // Step 1: upload the new file if one was picked. If editing and no new
-            // file was picked, keep the existing s3Link untouched.
-            var s3Link = _uiState.value.existingDoc?.s3Link
+            var savedFileName = _uiState.value.existingDoc?.displayFileName()
             if (file != null) {
-                when (val uploadResult = documentRepository.uploadFile(file)) {
-                    is ApiResult.Success -> s3Link = uploadResult.data.s3Link
+                when (val uploadResult = documentRepository.uploadFile(userId, file)) {
+                    is ApiResult.Success -> {
+                        savedFileName = uploadResult.data.resolvedFileName ?: file.name
+                    }
                     is ApiResult.Error -> {
                         _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = uploadResult.message)
                         return@launch
@@ -78,24 +78,18 @@ class DocumentUploadViewModel(
                 }
             }
 
-            // Step 2: save/update the document record.
-            // NOTE: docId here is a generated identifier for this document instance,
-            // distinct from docTemplateId (which refers to the checklist template).
-            // The exact intended meaning of "docId" vs "docTemplateId" in the backend
-            // schema is ambiguous from the Swagger spec alone - confirm with backend
-            // and adjust if this assumption is wrong.
             val request = DocumentRequestDto(
-                id=_uiState.value.existingDoc?.id ?: 0L,
+                id = _uiState.value.existingDoc?.id ?: 0L,
                 docTemplateId = docTemplateId,
                 docName = docName,
                 docId = _uiState.value.existingDoc?.docId ?: "${docTemplateId}_${System.currentTimeMillis()}",
                 expiryDate = expiryDate.atStartOfDay().toString(),
                 notificationTime = LocalDateTime.now().toString(),
+                fileName = savedFileName,
                 email = notifyEmail,
                 whatsApp = notifyWhatsApp,
                 sms = notifySms,
-                uploaded = true,
-                s3Link = s3Link
+                uploaded = true
             )
 
             val saveResult = documentRepository.saveDocument(userId, profileId, vehicleRegNo, request)

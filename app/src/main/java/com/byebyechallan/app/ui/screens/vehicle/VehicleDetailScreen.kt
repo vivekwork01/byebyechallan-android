@@ -79,7 +79,7 @@ fun VehicleDetailScreen(
                     ErrorBanner(uiState.errorMessage)
                 }
                 uiState.items.isEmpty() -> EmptyState(
-                    "No document checklist found for this vehicle's country/state/type combination."
+                    "No documents found for this vehicle."
                 )
                 else -> LazyColumn(
                     contentPadding = PaddingValues(16.dp),

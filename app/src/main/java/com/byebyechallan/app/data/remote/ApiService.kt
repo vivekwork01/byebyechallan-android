@@ -74,10 +74,18 @@ interface ApiService {
     ): Response<List<DocumentRequestDto>>
 
     @Multipart
-    @POST("api/v1/file/upload")
+    @POST("api/v1/file/{userId}/upload")
     suspend fun uploadDocumentFile(
+        @Path("userId") userId: Long,
         @Part file: MultipartBody.Part
-    ): Response<UploadResponse>
+    ): Response<FileResponseDto>
+
+    @Streaming
+    @GET("api/v1/file/{userId}/{fileName}")
+    suspend fun downloadFile(
+        @Path("userId") userId: Long,
+        @Path("fileName") fileName: String
+    ): Response<ResponseBody>
 
     // ---------- Master Controller ----------
 

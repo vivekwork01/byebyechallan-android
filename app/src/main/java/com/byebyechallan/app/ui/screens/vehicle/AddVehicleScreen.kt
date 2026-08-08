@@ -22,7 +22,7 @@ import com.byebyechallan.app.data.model.VehicleTypeResponseDto
 import com.byebyechallan.app.ui.components.DropdownSelector
 import com.byebyechallan.app.ui.components.ErrorBanner
 import com.byebyechallan.app.ui.components.PrimaryButton
-import com.byebyechallan.app.data.local.LocalVehicle
+import com.byebyechallan.app.data.model.VehicleSummary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,9 +30,17 @@ fun AddVehicleScreen(
     app: ByeByeChallanApp,
     profileId: Long,
     onBack: () -> Unit,
-    onVehicleAdded: (LocalVehicle) -> Unit
+    onVehicleAdded: (VehicleSummary) -> Unit
 ) {
-    val viewModel = viewModel { AddVehicleViewModel(profileId, app.masterRepository, app.documentRepository, app.profileRepository, app.sessionManager, app.vehicleLocalStore) }
+    val viewModel = viewModel {
+        AddVehicleViewModel(
+            profileId,
+            app.masterRepository,
+            app.documentRepository,
+            app.profileRepository,
+            app.sessionManager
+        )
+    }
     val state by viewModel.uiState.collectAsState()
 
     var registrationNo by remember { mutableStateOf("") }

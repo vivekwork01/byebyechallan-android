@@ -26,3 +26,24 @@ data class ProfileVehicleResponseDto(
     val vehicleRegistrationNo: String? = null,
     val docs: List<com.byebyechallan.app.data.model.UserDocumentDto> = emptyList()
 )
+
+/** UI/navigation model for a vehicle. Loaded from the server; not cached locally. */
+data class VehicleSummary(
+    val registrationNo: String,
+    val vehicleName: String? = null,
+    val country: String = "",
+    val state: String = "",
+    val registrationType: String = "",
+    val vehicleType: String = ""
+) {
+    companion object {
+        fun fromDto(dto: ProfileVehicleResponseDto): VehicleSummary? {
+            val registrationNo = dto.vehicleRegistrationNo?.trim().orEmpty()
+            if (registrationNo.isBlank()) return null
+            return VehicleSummary(
+                registrationNo = registrationNo,
+                vehicleName = dto.profileVehicleName
+            )
+        }
+    }
+}

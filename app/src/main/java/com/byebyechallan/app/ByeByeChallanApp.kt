@@ -1,7 +1,6 @@
 package com.byebyechallan.app
 
 import android.app.Application
-import com.byebyechallan.app.data.local.VehicleLocalStore
 import com.byebyechallan.app.data.remote.ApiService
 import com.byebyechallan.app.data.remote.RetrofitClient
 import com.byebyechallan.app.data.remote.SessionManager
@@ -24,7 +23,6 @@ class ByeByeChallanApp : Application() {
     lateinit var profileRepository: ProfileRepository
     lateinit var documentRepository: DocumentRepository
     lateinit var masterRepository: MasterRepository
-    lateinit var vehicleLocalStore: VehicleLocalStore
 
     override fun onCreate() {
         super.onCreate()
@@ -36,6 +34,5 @@ class ByeByeChallanApp : Application() {
         profileRepository = ProfileRepository(apiService)
         documentRepository = DocumentRepository(apiService)
         masterRepository = MasterRepository(apiService)
-        vehicleLocalStore = VehicleLocalStore(this)
     }
 }

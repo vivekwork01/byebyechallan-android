@@ -5,21 +5,28 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.byebyechallan.app.ByeByeChallanApp
+import com.byebyechallan.app.BuildConfig
 import com.byebyechallan.app.ui.components.ErrorBanner
 import com.byebyechallan.app.ui.components.FullScreenLoading
 import com.byebyechallan.app.ui.components.PrimaryButton
@@ -43,7 +50,11 @@ fun DocumentUploadScreen(
     val context = LocalContext.current
 
     var userId by remember { mutableStateOf<Long?>(null) }
-    LaunchedEffect(Unit) { userId = app.sessionManager.getUserId() }
+    var authToken by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        userId = app.sessionManager.getUserId()
+        authToken = app.sessionManager.getToken()
+    }
 
     if (userId == null) {
         FullScreenLoading()
@@ -94,8 +105,19 @@ fun DocumentUploadScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         pickedFileUri = uri
-        pickedFileName = uri?.lastPathSegment
+        pickedFileName = uri?.let { FileUtils.getDisplayFileName(context, it) }
     }
+
+    val hasExistingFile = uiState.existingDoc?.hasValidFile() == true
+    val previewUri = pickedFileUri
+    val previewUrl = if (pickedFileUri == null && userId != null) {
+        uiState.existingDoc?.resolvePreviewUrl(userId!!, BuildConfig.BASE_URL)
+    } else {
+        null
+    }
+    val displayFileName = pickedFileName
+        ?: uiState.existingDoc?.displayFileName()
+    val showPreview = previewUri != null || (hasExistingFile && previewUrl != null)
 
     Scaffold(
         topBar = {
@@ -121,31 +143,58 @@ fun DocumentUploadScreen(
                 .padding(24.dp)
                 .fillMaxWidth()
         ) {
-            if (uiState.existingDoc != null) {
+            if (hasExistingFile && pickedFileUri == null) {
                 Text(
-                    text = "A document is already uploaded for this item. Pick a new file only if you want to replace it.",
+                    text = "A document is already uploaded for this item. Use Re-upload to replace it.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // ---- File picker ----
-            OutlinedButton(
-                onClick = { filePickerLauncher.launch("*/*") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Filled.UploadFile, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(if (pickedFileName != null) "Selected: $pickedFileName" else "Choose File (PDF or Image)")
+            if (showPreview) {
+                DocumentPreviewCard(
+                    previewUri = previewUri,
+                    previewUrl = previewUrl,
+                    fileName = displayFileName,
+                    authToken = authToken
+                )
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            if (pickedFileUri == null && uiState.existingDoc?.s3Link != null) {
+            if (hasExistingFile || pickedFileUri != null) {
+                OutlinedButton(
+                    onClick = { filePickerLauncher.launch("*/*") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.UploadFile, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (hasExistingFile) "Re-upload Document" else "Choose Different File")
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { filePickerLauncher.launch("*/*") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.UploadFile, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (pickedFileName != null) "Selected: $pickedFileName" else "Choose File (PDF or Image)")
+                }
+            }
+
+            if (pickedFileUri != null && pickedFileName != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Existing file on record", style = MaterialTheme.typography.bodyMedium)
+                    Text("New file selected: $pickedFileName", style = MaterialTheme.typography.bodyMedium)
+                }
+            } else if (hasExistingFile && displayFileName != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Uploaded file: $displayFileName", style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
@@ -189,7 +238,7 @@ fun DocumentUploadScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             PrimaryButton(
-                text = if (uiState.existingDoc != null) "Update Document" else "Upload Document",
+                text = if (hasExistingFile || uiState.existingDoc != null) "Update Document" else "Upload Document",
                 isLoading = uiState.isSaving,
                 onClick = {
                     val file = pickedFileUri?.let { FileUtils.copyUriToCacheFile(context, it) }
@@ -225,6 +274,83 @@ fun DocumentUploadScreen(
             DatePicker(state = datePickerState)
         }
     }
+}
+
+@Composable
+private fun DocumentPreviewCard(
+    previewUri: Uri?,
+    previewUrl: String?,
+    fileName: String?,
+    authToken: String?
+) {
+    val context = LocalContext.current
+    val previewSource = previewUri ?: previewUrl
+    val isImage = previewSource?.let(::isImageSource) == true
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Document Preview", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (isImage && previewSource != null) {
+                val imageRequestBuilder = ImageRequest.Builder(context)
+                    .data(previewSource)
+                    .crossfade(true)
+                if (!authToken.isNullOrBlank() && previewUri == null) {
+                    imageRequestBuilder.addHeader("Authorization", "Bearer $authToken")
+                }
+                AsyncImage(
+                    model = imageRequestBuilder.build(),
+                    contentDescription = fileName ?: "Document preview",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 180.dp, max = 320.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Filled.PictureAsPdf,
+                            contentDescription = null,
+                            modifier = Modifier.size(56.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = fileName ?: "Document file",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (!fileName.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "File: $fileName",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+private fun isImageSource(source: Any): Boolean {
+    val value = source.toString().lowercase()
+    return listOf(".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp").any { value.contains(it) }
 }
 
 @Composable

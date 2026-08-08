@@ -2,21 +2,23 @@ package com.byebyechallan.app.ui.screens.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.byebyechallan.app.data.local.LocalVehicle
+import com.byebyechallan.app.data.model.VehicleSummary
+import com.byebyechallan.app.data.remote.SessionManager
+import com.byebyechallan.app.data.repository.ApiResult
+import com.byebyechallan.app.data.repository.ProfileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 data class ProfileDetailUiState(
     val isLoading: Boolean = true,
-    val vehicles: List<LocalVehicle> = emptyList()
+    val vehicles: List<VehicleSummary> = emptyList()
 )
 
 class ProfileDetailViewModel(
     private val profileId: Long,
-    private val profileRepository: com.byebyechallan.app.data.repository.ProfileRepository,
-    private val sessionManager: com.byebyechallan.app.data.remote.SessionManager,
-    private val vehicleLocalStore: com.byebyechallan.app.data.local.VehicleLocalStore
+    private val profileRepository: ProfileRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileDetailUiState())
@@ -35,33 +37,11 @@ class ProfileDetailViewModel(
             }
 
             when (val result = profileRepository.getVehiclesForProfile(userId, profileId)) {
-                is com.byebyechallan.app.data.repository.ApiResult.Success -> {
-                    val cachedVehicles = vehicleLocalStore.getVehiclesForProfile(profileId)
-                    val cachedByRegistration = cachedVehicles.associateBy { it.registrationNo }
-                    val vehicles = result.data.mapNotNull { dto ->
-                        val registrationNo = dto.vehicleRegistrationNo ?: ""
-                        if (registrationNo.isBlank()) {
-                            return@mapNotNull null
-                        }
-                        val cached = cachedByRegistration[registrationNo]
-                        cached?.copy(vehicleName = dto.profileVehicleName ?: cached.vehicleName)
-                            ?: com.byebyechallan.app.data.local.LocalVehicle(
-                                profileId = profileId,
-                                registrationNo = registrationNo,
-                                country = "",
-                                state = "",
-                                registrationType = "",
-                                vehicleType = "",
-                                vehicleName = dto.profileVehicleName
-                            )
-                    }
-                    val serverRegistrations = vehicles.map { it.registrationNo }.toSet()
-                    _uiState.value = ProfileDetailUiState(
-                        isLoading = false,
-                        vehicles = vehicles + cachedVehicles.filter { it.registrationNo !in serverRegistrations }
-                    )
+                is ApiResult.Success -> {
+                    val vehicles = result.data.mapNotNull(VehicleSummary::fromDto)
+                    _uiState.value = ProfileDetailUiState(isLoading = false, vehicles = vehicles)
                 }
-                is com.byebyechallan.app.data.repository.ApiResult.Error -> {
+                is ApiResult.Error -> {
                     _uiState.value = ProfileDetailUiState(isLoading = false, vehicles = emptyList())
                 }
             }

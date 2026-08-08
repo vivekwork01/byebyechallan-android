@@ -19,7 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.compose.runtime.LaunchedEffect
 import com.byebyechallan.app.ByeByeChallanApp
-import com.byebyechallan.app.data.local.LocalVehicle
+import com.byebyechallan.app.data.model.VehicleSummary
 import com.byebyechallan.app.ui.components.EmptyState
 import com.byebyechallan.app.ui.components.FullScreenLoading
 
@@ -32,14 +32,13 @@ fun ProfileDetailScreen(
     profileName: String,
     onBack: () -> Unit,
     onAddVehicle: () -> Unit,
-    onVehicleClick: (LocalVehicle) -> Unit
+    onVehicleClick: (VehicleSummary) -> Unit
 ) {
     val viewModel = viewModel {
         ProfileDetailViewModel(
             profileId,
             app.profileRepository,
-            app.sessionManager,
-            app.vehicleLocalStore
+            app.sessionManager
         )
     }
     val state by viewModel.uiState.collectAsState()
@@ -95,7 +94,7 @@ fun ProfileDetailScreen(
 }
 
 @Composable
-private fun VehicleRow(vehicle: LocalVehicle, onClick: () -> Unit) {
+private fun VehicleRow(vehicle: VehicleSummary, onClick: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -116,11 +115,13 @@ private fun VehicleRow(vehicle: LocalVehicle, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text = vehicle.vehicleType,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (vehicle.vehicleType.isNotBlank()) {
+                Text(
+                    text = vehicle.vehicleType,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             }
             Icon(Icons.Filled.ChevronRight, contentDescription = null)
         }

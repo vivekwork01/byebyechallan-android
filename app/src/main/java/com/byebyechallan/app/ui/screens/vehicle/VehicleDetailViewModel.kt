@@ -45,46 +45,43 @@ class VehicleDetailViewModel(
                 return@launch
             }
 
-            if (country.isBlank() || state.isBlank() || registrationType.isBlank() || vehicleType.isBlank()) {
-                when (val uploadedResult = documentRepository.getUploadedDocuments(userId, profileId, vehicleRegNo)) {
-                    is ApiResult.Success -> {
-                        _uiState.value = VehicleDetailUiState(
-                            isLoading = false,
-                            items = uploadedResult.data.map(::uploadedDocumentItem)
-                        )
+            when (val uploadedResult = documentRepository.getUploadedDocuments(userId, profileId, vehicleRegNo)) {
+                is ApiResult.Success -> {
+                    val documents = uploadedResult.data
+                    val items = if (
+                        country.isNotBlank() && state.isNotBlank() &&
+                        registrationType.isNotBlank() && vehicleType.isNotBlank()
+                    ) {
+                        when (val checklistResult = documentRepository.getDocumentChecklist(
+                            country, state, registrationType, vehicleType
+                        )) {
+                            is ApiResult.Success -> {
+                                val merged = documentRepository.mergeChecklist(checklistResult.data, documents)
+                                if (merged.isNotEmpty()) merged else documents.map(::documentItemFromUserDocument)
+                            }
+                            is ApiResult.Error -> documents.map(::documentItemFromUserDocument)
+                        }
+                    } else {
+                        documents.map(::documentItemFromUserDocument)
                     }
-                    is ApiResult.Error -> {
-                        _uiState.value = VehicleDetailUiState(errorMessage = uploadedResult.message, isLoading = false)
-                    }
+                    _uiState.value = VehicleDetailUiState(isLoading = false, items = items)
                 }
-                return@launch
+                is ApiResult.Error -> {
+                    _uiState.value = VehicleDetailUiState(
+                        errorMessage = uploadedResult.message,
+                        isLoading = false
+                    )
+                }
             }
-
-            val checklistResult = documentRepository.getDocumentChecklist(country, state, registrationType, vehicleType)
-            val uploadedResult = documentRepository.getUploadedDocuments(userId, profileId, vehicleRegNo)
-
-            if (checklistResult is ApiResult.Error) {
-                _uiState.value = VehicleDetailUiState(errorMessage = checklistResult.message, isLoading = false)
-                return@launch
-            }
-            if (uploadedResult is ApiResult.Error) {
-                _uiState.value = VehicleDetailUiState(errorMessage = uploadedResult.message, isLoading = false)
-                return@launch
-            }
-
-            val templates = (checklistResult as ApiResult.Success).data
-            val uploaded = (uploadedResult as ApiResult.Success).data
-            val merged = documentRepository.mergeChecklist(templates, uploaded)
-
-            _uiState.value = VehicleDetailUiState(isLoading = false, items = merged)
         }
     }
 
-    private fun uploadedDocumentItem(document: UserDocumentDto): DocumentChecklistItem {
-        val templateId = document.docTemplateId ?: document.docId.orEmpty()
+    private fun documentItemFromUserDocument(document: UserDocumentDto): DocumentChecklistItem {
+        val templateId = document.docTemplateId?.takeIf { it.isNotBlank() }
+            ?: document.docId.orEmpty()
         return DocumentChecklistItem(
             template = DocumentRequestDto(
-                id=document.id,
+                id = document.id,
                 docTemplateId = templateId,
                 docName = document.docName ?: "Document",
                 docId = templateId,
@@ -93,8 +90,8 @@ class VehicleDetailViewModel(
                 email = document.email,
                 whatsApp = document.whatsApp,
                 sms = document.sms,
-                uploaded = true,
-                s3Link = document.s3Link
+                fileName = document.fileName,
+                uploaded = document.uploaded
             ),
             uploaded = document
         )

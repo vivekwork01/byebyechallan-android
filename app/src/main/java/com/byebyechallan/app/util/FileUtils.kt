@@ -27,6 +27,10 @@ object FileUtils {
         }
     }
 
+    fun getDisplayFileName(context: Context, uri: Uri): String? {
+        return getFileName(context, uri)
+    }
+
     private fun getFileName(context: Context, uri: Uri): String? {
         var name: String? = null
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->

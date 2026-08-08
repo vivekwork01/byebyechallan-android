@@ -198,7 +198,7 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                         Screen.DocumentUpload.createRoute(
                             profileId = profileId,
                             vehicleRegNo = vehicleRegNo,
-                            docTemplateId = item.template.docId,
+                            docTemplateId = item.template.docTemplateId.ifBlank { item.template.docId },
                             docName = item.template.docName
                         )
                     )
