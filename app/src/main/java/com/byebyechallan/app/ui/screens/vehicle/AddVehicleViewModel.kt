@@ -117,7 +117,8 @@ class AddVehicleViewModel(
                         email = false,
                         whatsApp = false,
                         sms = false,
-                        uploaded = false
+                        uploaded = false,
+                        renewable = template.renewable
                     )
                 }
                 is ApiResult.Error -> {

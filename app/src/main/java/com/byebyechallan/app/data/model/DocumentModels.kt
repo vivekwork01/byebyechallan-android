@@ -15,7 +15,8 @@ data class DocumentRequestDto(
     val email: Boolean = false,
     val whatsApp: Boolean = false,
     val sms: Boolean = false,
-    val uploaded: Boolean = false
+    val uploaded: Boolean = false,
+    val renewable: Boolean = false
 )
 
 // What the backend returns for a saved/existing document
@@ -38,7 +39,8 @@ data class UserDocumentDto(
     val updatedDate: String?,
     val email: Boolean = false,
     val whatsApp: Boolean = false,
-    val sms: Boolean = false
+    val sms: Boolean = false,
+    val renewable: Boolean = false
 ) {
     fun hasValidFile(): Boolean {
         val hasStoredName = !s3FileName.isNullOrBlank()
@@ -132,4 +134,5 @@ data class DocumentChecklistItem(
     // Backend no longer returns a docType field in the checklist/template objects per OpenAPI.
     // isMandatory defaults to false; UI should be updated when the backend adds a field to indicate mandatory.
     val isMandatory: Boolean get() = false
+    val isRenewable: Boolean get() = uploaded?.renewable ?: template.renewable
 }

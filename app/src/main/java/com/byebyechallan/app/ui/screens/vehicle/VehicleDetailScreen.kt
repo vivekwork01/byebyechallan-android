@@ -120,12 +120,20 @@ private fun DocumentRow(item: DocumentChecklistItem, onClick: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 if (item.isUploaded) {
-                    val tint = if (expired) RedExpired else if (soon) AmberWarning else MaterialTheme.colorScheme.onSurfaceVariant
-                    Text(
-                        text = "Expires ${DateUtils.formatForDisplay(item.uploaded?.expiryDate)}" + if (expired) " (Expired)" else "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = tint
-                    )
+                    if (item.isRenewable) {
+                        val tint = if (expired) RedExpired else if (soon) AmberWarning else MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            text = "Expires ${DateUtils.formatForDisplay(item.uploaded?.expiryDate)}" + if (expired) " (Expired)" else "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = tint
+                        )
+                    } else {
+                        Text(
+                            text = "Uploaded",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 } else {
                     Text(
                         text = "Not uploaded yet",

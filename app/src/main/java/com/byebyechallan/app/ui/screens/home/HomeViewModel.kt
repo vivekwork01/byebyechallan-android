@@ -79,7 +79,7 @@ class HomeViewModel(
         }
 
         val soonest = allDocs
-            .filter { !it.expiryDate.isNullOrBlank() }
+            .filter { it.renewable && !it.expiryDate.isNullOrBlank() }
             .minByOrNull { DateUtils.parseToEpochMillis(it.expiryDate) ?: Long.MAX_VALUE }
 
         return ProfileCardData(

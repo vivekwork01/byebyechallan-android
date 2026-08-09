@@ -40,13 +40,15 @@ sealed class Screen(val route: String) {
     }
 
     object DocumentUpload : Screen(
-        "document_upload/{profileId}/{vehicleRegNo}/{docTemplateId}/{docName}"
+        "document_upload/{profileId}/{vehicleRegNo}/{docTemplateId}/{docName}?renewable={renewable}"
     ) {
         fun createRoute(
             profileId: Long,
             vehicleRegNo: String,
             docTemplateId: String,
-            docName: String
-        ) = "document_upload/$profileId/${Uri.encode(vehicleRegNo)}/${Uri.encode(docTemplateId)}/${Uri.encode(docName)}"
+            docName: String,
+            renewable: Boolean
+        ) = "document_upload/$profileId/${Uri.encode(vehicleRegNo)}/${Uri.encode(docTemplateId)}/${Uri.encode(docName)}" +
+            "?renewable=$renewable"
     }
 }

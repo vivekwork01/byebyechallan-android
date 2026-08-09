@@ -51,14 +51,15 @@ class DocumentUploadViewModel(
         expiryDate: LocalDate?,
         notifyEmail: Boolean,
         notifyWhatsApp: Boolean,
-        notifySms: Boolean
+        notifySms: Boolean,
+        isRenewable: Boolean
     ) {
         val hasExistingFile = _uiState.value.existingDoc?.hasValidFile() == true
         if (file == null && !hasExistingFile) {
             _uiState.value = _uiState.value.copy(errorMessage = "Please select a file to upload.")
             return
         }
-        if (expiryDate == null) {
+        if (isRenewable && expiryDate == null) {
             _uiState.value = _uiState.value.copy(errorMessage = "Please select an expiry date.")
             return
         }
@@ -86,14 +87,15 @@ class DocumentUploadViewModel(
                 docTemplateId = docTemplateId,
                 docName = docName,
                 docId = _uiState.value.existingDoc?.docId ?: "${docTemplateId}_${System.currentTimeMillis()}",
-                expiryDate = expiryDate.atStartOfDay().toString(),
-                notificationTime = LocalDateTime.now().toString(),
+                expiryDate = if (isRenewable) expiryDate?.atStartOfDay()?.toString() else null,
+                notificationTime = if (isRenewable) LocalDateTime.now().toString() else null,
                 fileName = savedOriginalFileName,
                 s3FileName = savedS3FileName,
-                email = notifyEmail,
-                whatsApp = notifyWhatsApp,
-                sms = notifySms,
-                uploaded = true
+                email = if (isRenewable) notifyEmail else false,
+                whatsApp = if (isRenewable) notifyWhatsApp else false,
+                sms = if (isRenewable) notifySms else false,
+                uploaded = true,
+                renewable = isRenewable
             )
 
             val saveResult = documentRepository.saveDocument(userId, profileId, vehicleRegNo, request)

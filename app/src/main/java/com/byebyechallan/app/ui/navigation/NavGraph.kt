@@ -199,7 +199,8 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                             profileId = profileId,
                             vehicleRegNo = vehicleRegNo,
                             docTemplateId = item.template.docTemplateId.ifBlank { item.template.docId },
-                            docName = item.template.docName
+                            docName = item.template.docName,
+                            renewable = item.isRenewable
                         )
                     )
                 }
@@ -212,7 +213,11 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                 navArgument("profileId") { type = NavType.LongType },
                 navArgument("vehicleRegNo") { type = NavType.StringType },
                 navArgument("docTemplateId") { type = NavType.StringType },
-                navArgument("docName") { type = NavType.StringType }
+                navArgument("docName") { type = NavType.StringType },
+                navArgument("renewable") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
             )
         ) { backStackEntry ->
             val args = backStackEntry.arguments!!
@@ -222,6 +227,7 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                 vehicleRegNo = args.getString("vehicleRegNo") ?: "",
                 docTemplateId = args.getString("docTemplateId") ?: "",
                 docName = args.getString("docName") ?: "",
+                renewable = args.getBoolean("renewable"),
                 onBack = { navController.popBackStack() },
                 onSaved = {
                     navController.previousBackStackEntry?.savedStateHandle?.set("refreshDocuments", true)
