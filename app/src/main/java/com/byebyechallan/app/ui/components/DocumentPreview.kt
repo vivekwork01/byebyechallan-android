@@ -5,12 +5,15 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,8 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.ImageLoader
 import coil.compose.AsyncImage
@@ -34,6 +39,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
+enum class DocumentPreviewDisplayMode {
+    Compact,
+    FullScreen
+}
+
 @Composable
 fun DocumentPreviewCard(
     previewUri: Uri?,
@@ -43,6 +53,75 @@ fun DocumentPreviewCard(
     imageLoader: ImageLoader,
     authToken: String?
 ) {
+    var showFullScreen by remember { mutableStateOf(false) }
+    val fileType = FileUtils.resolveDocumentFileType(
+        LocalContext.current,
+        displayFileName ?: previewFileKey,
+        previewUri
+    )
+    val canExpand = fileType != DocumentFileType.OTHER
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Document Preview", style = MaterialTheme.typography.titleMedium)
+                if (canExpand) {
+                    TextButton(onClick = { showFullScreen = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.OpenInFull,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Full screen")
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            DocumentPreviewContent(
+                previewUri = previewUri,
+                previewUrl = previewUrl,
+                displayFileName = displayFileName,
+                previewFileKey = previewFileKey,
+                imageLoader = imageLoader,
+                authToken = authToken,
+                displayMode = DocumentPreviewDisplayMode.Compact
+            )
+        }
+    }
+
+    if (showFullScreen) {
+        FullScreenDocumentViewer(
+            previewUri = previewUri,
+            previewUrl = previewUrl,
+            displayFileName = displayFileName,
+            previewFileKey = previewFileKey,
+            imageLoader = imageLoader,
+            authToken = authToken,
+            onDismiss = { showFullScreen = false }
+        )
+    }
+}
+
+@Composable
+fun DocumentPreviewContent(
+    previewUri: Uri?,
+    previewUrl: String?,
+    displayFileName: String?,
+    previewFileKey: String?,
+    imageLoader: ImageLoader,
+    authToken: String?,
+    displayMode: DocumentPreviewDisplayMode,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val fileType = FileUtils.resolveDocumentFileType(
         context,
@@ -50,18 +129,19 @@ fun DocumentPreviewCard(
         previewUri
     )
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Document Preview", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            when (fileType) {
-                DocumentFileType.IMAGE -> {
-                    val previewSource = previewUri ?: previewUrl
-                    if (previewSource != null) {
+    Box(modifier = modifier) {
+        when (fileType) {
+            DocumentFileType.IMAGE -> {
+                val previewSource = previewUri ?: previewUrl
+                if (previewSource != null) {
+                    if (displayMode == DocumentPreviewDisplayMode.FullScreen) {
+                        ZoomableAsyncImage(
+                            previewSource = previewSource,
+                            imageLoader = imageLoader,
+                            contentDescription = displayFileName ?: "Document preview",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
                         AsyncImage(
                             model = ImageRequest.Builder(context)
                                 .data(previewSource)
@@ -75,44 +155,92 @@ fun DocumentPreviewCard(
                                 .clip(RoundedCornerShape(8.dp)),
                             contentScale = ContentScale.Fit
                         )
-                    } else {
-                        PreviewUnavailableMessage("Image preview is not available")
                     }
-                }
-                DocumentFileType.PDF -> {
-                    PdfDocumentPreview(
-                        previewUri = previewUri,
-                        previewUrl = previewUrl,
-                        displayFileName = displayFileName ?: previewFileKey,
-                        authToken = authToken,
-                        maxPages = 20
-                    )
-                }
-                DocumentFileType.OFFICE -> {
-                    OfficeDocumentPreview(
-                        previewUri = previewUri,
-                        previewUrl = previewUrl,
-                        displayFileName = displayFileName ?: previewFileKey,
-                        authToken = authToken
-                    )
-                }
-                DocumentFileType.TEXT -> {
-                    TextDocumentPreview(
-                        previewUri = previewUri,
-                        previewUrl = previewUrl,
-                        displayFileName = displayFileName ?: previewFileKey,
-                        authToken = authToken
-                    )
-                }
-                DocumentFileType.OTHER -> {
-                    UnsupportedDocumentPreview(
-                        displayFileName = displayFileName ?: previewFileKey,
-                        message = "In-app preview is not available for this file type."
+                } else {
+                    PreviewUnavailableMessage(
+                        message = "Image preview is not available",
+                        displayMode = displayMode
                     )
                 }
             }
+            DocumentFileType.PDF -> {
+                PdfDocumentPreview(
+                    previewUri = previewUri,
+                    previewUrl = previewUrl,
+                    displayFileName = displayFileName ?: previewFileKey,
+                    authToken = authToken,
+                    displayMode = displayMode
+                )
+            }
+            DocumentFileType.OFFICE -> {
+                OfficeDocumentPreview(
+                    previewUri = previewUri,
+                    previewUrl = previewUrl,
+                    displayFileName = displayFileName ?: previewFileKey,
+                    authToken = authToken,
+                    displayMode = displayMode
+                )
+            }
+            DocumentFileType.TEXT -> {
+                TextDocumentPreview(
+                    previewUri = previewUri,
+                    previewUrl = previewUrl,
+                    displayFileName = displayFileName ?: previewFileKey,
+                    authToken = authToken,
+                    displayMode = displayMode
+                )
+            }
+            DocumentFileType.OTHER -> {
+                UnsupportedDocumentPreview(
+                    displayFileName = displayFileName ?: previewFileKey,
+                    message = "In-app preview is not available for this file type.",
+                    displayMode = displayMode
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun ZoomableAsyncImage(
+    previewSource: Any,
+    imageLoader: ImageLoader,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+
+    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
+        scale = (scale * zoomChange).coerceIn(1f, 5f)
+        if (scale > 1f) {
+            offsetX += panChange.x
+            offsetY += panChange.y
+        } else {
+            offsetX = 0f
+            offsetY = 0f
+        }
+    }
+
+    AsyncImage(
+        model = ImageRequest.Builder(context)
+            .data(previewSource)
+            .crossfade(true)
+            .build(),
+        imageLoader = imageLoader,
+        contentDescription = contentDescription,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = offsetX
+                translationY = offsetY
+            }
+            .transformable(state = transformableState),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
@@ -121,12 +249,13 @@ private fun PdfDocumentPreview(
     previewUrl: String?,
     displayFileName: String?,
     authToken: String?,
-    maxPages: Int = 20
+    displayMode: DocumentPreviewDisplayMode
 ) {
     val context = LocalContext.current
-    var isLoading by remember(previewUri, previewUrl) { mutableStateOf(true) }
-    var errorMessage by remember(previewUri, previewUrl) { mutableStateOf<String?>(null) }
-    var pageBitmaps by remember(previewUri, previewUrl) { mutableStateOf<List<Bitmap>>(emptyList()) }
+    val maxPages = if (displayMode == DocumentPreviewDisplayMode.FullScreen) 200 else 20
+    var isLoading by remember(previewUri, previewUrl, displayMode) { mutableStateOf(true) }
+    var errorMessage by remember(previewUri, previewUrl, displayMode) { mutableStateOf<String?>(null) }
+    var pageBitmaps by remember(previewUri, previewUrl, displayMode) { mutableStateOf<List<Bitmap>>(emptyList()) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -134,7 +263,7 @@ private fun PdfDocumentPreview(
         }
     }
 
-    LaunchedEffect(previewUri, previewUrl) {
+    LaunchedEffect(previewUri, previewUrl, displayMode) {
         val previous = pageBitmaps
         pageBitmaps = emptyList()
         previous.forEach { it.recycle() }
@@ -159,18 +288,24 @@ private fun PdfDocumentPreview(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp),
+                    .height(if (displayMode == DocumentPreviewDisplayMode.FullScreen) 320.dp else 180.dp),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         }
-        errorMessage != null -> PreviewUnavailableMessage(errorMessage!!)
+        errorMessage != null -> PreviewUnavailableMessage(errorMessage!!, displayMode)
         else -> {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 480.dp)
+                    .then(
+                        if (displayMode == DocumentPreviewDisplayMode.FullScreen) {
+                            Modifier.fillMaxSize()
+                        } else {
+                            Modifier.heightIn(max = 480.dp)
+                        }
+                    )
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -194,7 +329,8 @@ private fun OfficeDocumentPreview(
     previewUri: Uri?,
     previewUrl: String?,
     displayFileName: String?,
-    authToken: String?
+    authToken: String?,
+    displayMode: DocumentPreviewDisplayMode
 ) {
     val context = LocalContext.current
     val mimeType = previewUri?.let { FileUtils.getMimeType(context, it) }
@@ -205,6 +341,7 @@ private fun OfficeDocumentPreview(
                 previewUrl = previewUrl,
                 displayFileName = displayFileName,
                 authToken = authToken,
+                displayMode = displayMode,
                 renderFromUri = { uri -> DocxHtmlRenderer.renderFromUri(context, uri) },
                 renderFromFile = { file -> DocxHtmlRenderer.renderFromFile(file) },
                 emptyMessage = "Couldn't render this Word document in the app."
@@ -216,6 +353,7 @@ private fun OfficeDocumentPreview(
                 previewUrl = previewUrl,
                 displayFileName = displayFileName,
                 authToken = authToken,
+                displayMode = displayMode,
                 renderFromUri = { uri -> XlsxHtmlRenderer.renderFromUri(context, uri) },
                 renderFromFile = { file -> XlsxHtmlRenderer.renderFromFile(file) },
                 emptyMessage = "Couldn't render this spreadsheet in the app."
@@ -224,7 +362,8 @@ private fun OfficeDocumentPreview(
         else -> {
             UnsupportedDocumentPreview(
                 displayFileName = displayFileName,
-                message = "In-app preview supports .docx and .xlsx. Older .doc / .xls files are not supported yet."
+                message = "In-app preview supports .docx and .xlsx. Older .doc / .xls files are not supported yet.",
+                displayMode = displayMode
             )
         }
     }
@@ -235,7 +374,8 @@ private fun TextDocumentPreview(
     previewUri: Uri?,
     previewUrl: String?,
     displayFileName: String?,
-    authToken: String?
+    authToken: String?,
+    displayMode: DocumentPreviewDisplayMode
 ) {
     val context = LocalContext.current
     InAppHtmlDocumentPreview(
@@ -243,6 +383,7 @@ private fun TextDocumentPreview(
         previewUrl = previewUrl,
         displayFileName = displayFileName,
         authToken = authToken,
+        displayMode = displayMode,
         renderFromUri = { uri ->
             context.contentResolver.openInputStream(uri)?.use { stream ->
                 val text = stream.bufferedReader().readText()
@@ -263,6 +404,7 @@ private fun InAppHtmlDocumentPreview(
     previewUrl: String?,
     displayFileName: String?,
     authToken: String?,
+    displayMode: DocumentPreviewDisplayMode,
     renderFromUri: (Uri) -> String?,
     renderFromFile: (File) -> String?,
     emptyMessage: String
@@ -291,21 +433,25 @@ private fun InAppHtmlDocumentPreview(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp),
+                    .height(if (displayMode == DocumentPreviewDisplayMode.FullScreen) 320.dp else 220.dp),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         }
         htmlContent.isNullOrBlank() -> {
-            UnsupportedDocumentPreview(displayFileName = displayFileName, message = emptyMessage)
+            UnsupportedDocumentPreview(displayFileName = displayFileName, message = emptyMessage, displayMode = displayMode)
         }
         else -> {
             InAppHtmlPreview(
                 bodyHtml = htmlContent!!,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 220.dp, max = 420.dp)
+                modifier = if (displayMode == DocumentPreviewDisplayMode.FullScreen) {
+                    Modifier.fillMaxSize()
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 220.dp, max = 420.dp)
+                }
             )
         }
     }
@@ -314,12 +460,13 @@ private fun InAppHtmlDocumentPreview(
 @Composable
 private fun UnsupportedDocumentPreview(
     displayFileName: String?,
-    message: String
+    message: String,
+    displayMode: DocumentPreviewDisplayMode
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(previewPlaceholderHeight(displayMode))
             .clip(RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center
     ) {
@@ -359,11 +506,14 @@ private fun escapeHtml(text: String): String {
 }
 
 @Composable
-private fun PreviewUnavailableMessage(message: String) {
+private fun PreviewUnavailableMessage(
+    message: String,
+    displayMode: DocumentPreviewDisplayMode
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(previewPlaceholderHeight(displayMode))
             .clip(RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center
     ) {
@@ -382,6 +532,10 @@ private fun PreviewUnavailableMessage(message: String) {
             )
         }
     }
+}
+
+private fun previewPlaceholderHeight(displayMode: DocumentPreviewDisplayMode): Dp {
+    return if (displayMode == DocumentPreviewDisplayMode.FullScreen) 320.dp else 180.dp
 }
 
 private suspend fun renderPdfPages(
