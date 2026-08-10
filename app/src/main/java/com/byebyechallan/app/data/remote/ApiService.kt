@@ -61,7 +61,7 @@ interface ApiService {
         @Path("userId") userId: Long,
         @Path("profileId") profileId: Long,
         @Path("vehicleRegistrationNo") vehicleRegistrationNo: String,
-        @Body request: DocumentRequestDto
+        @Body request: DocumentDto
     ): Response<UserDocumentDto>
 
     @GET("api/v1/document/list")

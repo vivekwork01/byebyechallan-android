@@ -70,9 +70,9 @@ fun DocumentUploadScreen(
     var notifyEmail by remember { mutableStateOf(true) }
     var notifyWhatsApp by remember { mutableStateOf(false) }
     var notifySms by remember { mutableStateOf(false) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var showExpiryDatePicker by remember { mutableStateOf(false) }
 
-    // Pre-fill expiry date from an existing record once it loads (edit mode)
+    // Pre-fill dates from an existing record once it loads (edit mode)
     LaunchedEffect(uiState.existingDoc) {
         if (isRenewable) {
             uiState.existingDoc?.expiryDate?.let { dateStr ->
@@ -211,7 +211,7 @@ fun DocumentUploadScreen(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     OutlinedButton(
-                        onClick = { showDatePicker = true },
+                        onClick = { showExpiryDatePicker = true },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Filled.CalendarToday, contentDescription = null)
@@ -241,7 +241,14 @@ fun DocumentUploadScreen(
                 isLoading = uiState.isSaving,
                 onClick = {
                     val file = pickedFileUri?.let { FileUtils.copyUriToCacheFile(context, it) }
-                    viewModel.submit(file, expiryDate, notifyEmail, notifyWhatsApp, notifySms, isRenewable)
+                    viewModel.submit(
+                        file,
+                        expiryDate,
+                        notifyEmail,
+                        notifyWhatsApp,
+                        notifySms,
+                        isRenewable
+                    )
                 }
             )
 
@@ -249,7 +256,7 @@ fun DocumentUploadScreen(
         }
     }
 
-    if (showDatePicker && isRenewable) {
+    if (showExpiryDatePicker && isRenewable) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = expiryDate
                 ?.atStartOfDay(ZoneId.systemDefault())
@@ -257,17 +264,17 @@ fun DocumentUploadScreen(
                 ?.toEpochMilli()
         )
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showExpiryDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         expiryDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
                     }
-                    showDatePicker = false
+                    showExpiryDatePicker = false
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showExpiryDatePicker = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)

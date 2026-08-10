@@ -2,20 +2,26 @@ package com.byebyechallan.app.ui.screens.vehicle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.byebyechallan.app.data.model.DocumentRequestDto
+import com.byebyechallan.app.data.model.RCDto
+import com.byebyechallan.app.data.model.VehicleRequestDto
 import com.byebyechallan.app.data.model.VehicleSummary
 import com.byebyechallan.app.data.model.CountryDto
 import com.byebyechallan.app.data.model.RegistrationDto
 import com.byebyechallan.app.data.model.StateDto
 import com.byebyechallan.app.data.model.VehicleTypeResponseDto
 import com.byebyechallan.app.data.repository.ApiResult
+import com.byebyechallan.app.data.repository.DocumentRepository
 import com.byebyechallan.app.data.repository.MasterRepository
+import com.byebyechallan.app.data.repository.ProfileRepository
+import com.byebyechallan.app.data.remote.SessionManager
+import com.byebyechallan.app.util.DateUtils
+import com.byebyechallan.app.util.RegistrationCertificateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
-/**
- * Now uses the backend vehicle-type endpoint (GET /api/v1/master/vehicle-type).
- */
+import java.io.File
+import java.time.LocalDateTime
 
 data class AddVehicleUiState(
     val countries: List<CountryDto> = emptyList(),
@@ -31,9 +37,9 @@ data class AddVehicleUiState(
 class AddVehicleViewModel(
     private val profileId: Long,
     private val masterRepository: MasterRepository,
-    private val documentRepository: com.byebyechallan.app.data.repository.DocumentRepository,
-    private val profileRepository: com.byebyechallan.app.data.repository.ProfileRepository,
-    private val sessionManager: com.byebyechallan.app.data.remote.SessionManager
+    private val documentRepository: DocumentRepository,
+    private val profileRepository: ProfileRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddVehicleUiState())
@@ -87,6 +93,9 @@ class AddVehicleViewModel(
         state: String,
         registrationType: String,
         vehicleTypeId: String,
+        rcFile: File?,
+        registrationDate: java.time.LocalDate?,
+        rcExpiryDate: java.time.LocalDate?,
         onSaved: (VehicleSummary) -> Unit
     ) {
         if (registrationNo.isBlank() || country.isBlank() || state.isBlank() ||
@@ -95,6 +104,19 @@ class AddVehicleViewModel(
             _uiState.value = _uiState.value.copy(errorMessage = "Please fill in all fields.")
             return
         }
+        if (rcFile == null) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Please upload the Registration Certificate.")
+            return
+        }
+        if (registrationDate == null) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Please select the registration date.")
+            return
+        }
+        if (rcExpiryDate == null) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Please select the RC expiry date.")
+            return
+        }
+
         _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
         viewModelScope.launch {
             val userId = sessionManager.getUserId()
@@ -103,22 +125,49 @@ class AddVehicleViewModel(
                 return@launch
             }
 
-            // 1) Fetch required document templates for this registration (use vehicleTypeName for the query param)
+            val normalizedRegNo = registrationNo.trim().uppercase()
+
+            val uploadResult = documentRepository.uploadFile(userId, rcFile)
+            val uploadData = when (uploadResult) {
+                is ApiResult.Success -> uploadResult.data
+                is ApiResult.Error -> {
+                    _uiState.value = _uiState.value.copy(isSaving = false, errorMessage = uploadResult.message)
+                    return@launch
+                }
+            }
+
+            val savedS3FileName = uploadData.storedFileName
+                ?: uploadData.fileUrl?.substringAfterLast('/')
+            val savedOriginalFileName = uploadData.originalDisplayName ?: rcFile.name
+            val rcS3Link = uploadData.fileUrl
+                ?: uploadData.filePath
+                ?: savedS3FileName
+
+            val rcDto = RCDto(
+                registrationNo = normalizedRegNo,
+                registrationDate = DateUtils.toIsoDateTimeString(registrationDate),
+                expiryDate = DateUtils.toIsoDateTimeString(rcExpiryDate),
+                rcS3Link = rcS3Link
+            )
+
             val checklistResult = documentRepository.getDocumentChecklist(country, state, registrationType, vehicleTypeId)
             val documents = when (checklistResult) {
                 is ApiResult.Success -> checklistResult.data.map { template ->
-                    com.byebyechallan.app.data.model.DocumentRequestDto(
-                        id=template.id,
+                    val isRc = RegistrationCertificateUtils.isRegistrationCertificate(template.docName)
+                    DocumentRequestDto(
+                        id = template.id,
                         docTemplateId = template.docId,
                         docName = template.docName,
-                        docId = "",
-                        expiryDate = null,
-                        notificationTime = template.notificationTime,
+                        docId = if (isRc) "${template.docId}_${System.currentTimeMillis()}" else "",
+                        expiryDate = if (isRc) DateUtils.toIsoDateTimeString(rcExpiryDate) else null,
+                        notificationTime = if (isRc) LocalDateTime.now().toString() else template.notificationTime,
+                        fileName = if (isRc) savedOriginalFileName else null,
+                        s3FileName = if (isRc) savedS3FileName else null,
                         email = false,
                         whatsApp = false,
                         sms = false,
-                        uploaded = false,
-                        renewable = template.renewable
+                        uploaded = isRc,
+                        renewable = if (isRc) true else template.renewable
                     )
                 }
                 is ApiResult.Error -> {
@@ -131,19 +180,19 @@ class AddVehicleViewModel(
                 }
             }
 
-            // 2) Call backend to add vehicle to profile with prepared documents and vehicleTypeId
-            val vehicleRequest = com.byebyechallan.app.data.model.VehicleRequestDto(
-                vehicleRegistrationNumber = registrationNo.trim().uppercase(),
-                vehicleName = vehicleName.trim().ifEmpty { registrationNo.trim().uppercase() },
+            val vehicleRequest = VehicleRequestDto(
+                vehicleRegistrationNumber = normalizedRegNo,
+                vehicleName = vehicleName.trim().ifEmpty { normalizedRegNo },
+                rcDto = rcDto,
                 documents = documents
             )
 
-            val addResult = profileRepository.addVehicleToProfile(userId, profileId, registrationNo.trim().uppercase(), vehicleRequest)
+            val addResult = profileRepository.addVehicleToProfile(userId, profileId, normalizedRegNo, vehicleRequest)
             when (addResult) {
                 is ApiResult.Success -> {
                     val vehicle = VehicleSummary(
-                        registrationNo = registrationNo.trim().uppercase(),
-                        vehicleName = vehicleName.trim().ifEmpty { registrationNo.trim().uppercase() },
+                        registrationNo = normalizedRegNo,
+                        vehicleName = vehicleName.trim().ifEmpty { normalizedRegNo },
                         country = country,
                         state = state,
                         registrationType = registrationType,

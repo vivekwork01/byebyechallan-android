@@ -95,10 +95,12 @@ class DocumentRepository(private val api: ApiService) {
         userId: Long,
         profileId: Long,
         vehicleRegistrationNo: String,
-        request: DocumentRequestDto
+        documentRequest: DocumentRequestDto,
+        rcDto: RCDto? = null
     ): ApiResult<UserDocumentDto> {
         return try {
-            val response = api.saveDocument(userId, profileId, vehicleRegistrationNo, request)
+            val body = DocumentDto(documentRequestDto = documentRequest, rcDto = rcDto)
+            val response = api.saveDocument(userId, profileId, vehicleRegistrationNo, body)
             if (response.isSuccessful && response.body() != null) {
                 ApiResult.Success(response.body()!!)
             } else {

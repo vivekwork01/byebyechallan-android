@@ -16,6 +16,7 @@ data class ProfileDto(
 data class VehicleRequestDto(
     val vehicleRegistrationNumber: String,
     val vehicleName: String? = null,
+    val rcDto: com.byebyechallan.app.data.model.RCDto? = null,
     val documents: List<com.byebyechallan.app.data.model.DocumentRequestDto> = emptyList()
 )
 

@@ -2,6 +2,18 @@ package com.byebyechallan.app.data.model
 
 import com.byebyechallan.app.util.FileUrlBuilder
 
+data class RCDto(
+    val registrationNo: String? = null,
+    val registrationDate: String? = null,
+    val expiryDate: String? = null,
+    val rcS3Link: String? = null
+)
+
+data class DocumentDto(
+    val documentRequestDto: DocumentRequestDto,
+    val rcDto: RCDto? = null
+)
+
 // What the app sends when saving/updating a document record.
 data class DocumentRequestDto(
     val id: Long = 0L,
