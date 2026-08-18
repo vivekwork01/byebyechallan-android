@@ -27,9 +27,22 @@ interface ApiService {
     @GET("api/v1/user/{userId}/profile")
     suspend fun getAllProfiles(@Path("userId") userId: Long): Response<List<ProfileDto>>
 
+    @GET("api/v1/user/{userId}/profile/{profileId}")
+    suspend fun getProfile(
+        @Path("userId") userId: Long,
+        @Path("profileId") profileId: Long
+    ): Response<ProfileDto>
+
     @POST("api/v1/user/{userId}/profile")
     suspend fun createProfile(
         @Path("userId") userId: Long,
+        @Body request: ProfileRequestDto
+    ): Response<ProfileDto>
+
+    @PUT("api/v1/user/{userId}/profile/{profileId}")
+    suspend fun updateProfile(
+        @Path("userId") userId: Long,
+        @Path("profileId") profileId: Long,
         @Body request: ProfileRequestDto
     ): Response<ProfileDto>
 

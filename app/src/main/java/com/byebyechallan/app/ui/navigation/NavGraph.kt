@@ -12,6 +12,7 @@ import com.byebyechallan.app.ui.screens.auth.RegisterScreen
 import com.byebyechallan.app.ui.screens.document.DocumentUploadScreen
 import com.byebyechallan.app.ui.screens.home.HomeScreen
 import com.byebyechallan.app.ui.screens.profile.CreateProfileScreen
+import com.byebyechallan.app.ui.screens.profile.EditProfileScreen
 import com.byebyechallan.app.ui.screens.profile.ProfileDetailScreen
 import com.byebyechallan.app.ui.screens.splash.SplashScreen
 import com.byebyechallan.app.ui.screens.vehicle.AddVehicleScreen
@@ -72,6 +73,7 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                     navController.navigate(Screen.ProfileDetail.createRoute(id, name))
                 },
                 onAddProfileClick = { navController.navigate(Screen.CreateProfile.route) },
+                onEditProfileClick = { id -> navController.navigate(Screen.EditProfile.createRoute(id)) },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
@@ -93,6 +95,23 @@ fun AppNavGraph(app: ByeByeChallanApp) {
         }
 
         composable(
+            route = Screen.EditProfile.route,
+            arguments = listOf(navArgument("profileId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val profileId = backStackEntry.arguments?.getLong("profileId") ?: 0L
+            EditProfileScreen(
+                app = app,
+                profileId = profileId,
+                onBack = { navController.popBackStack() },
+                onProfileUpdated = { updatedName ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("refreshProfiles", true)
+                    navController.previousBackStackEntry?.savedStateHandle?.set("updatedProfileName", updatedName)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
             route = Screen.ProfileDetail.route,
             arguments = listOf(
                 navArgument("profileId") { type = NavType.LongType },
@@ -107,6 +126,7 @@ fun AppNavGraph(app: ByeByeChallanApp) {
                 profileId = profileId,
                 profileName = profileName,
                 onBack = { navController.popBackStack() },
+                onEditProfile = { navController.navigate(Screen.EditProfile.createRoute(profileId)) },
                 onAddVehicle = { navController.navigate(Screen.AddVehicle.createRoute(profileId)) },
                 onVehicleClick = { vehicle ->
                     navController.navigate(

@@ -26,6 +26,8 @@ class SessionManager(private val context: Context) {
         private val KEY_TOKEN = stringPreferencesKey("auth_token")
         private val KEY_REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         private val KEY_USER_ID = longPreferencesKey("user_id")
+        private val KEY_EMAIL = stringPreferencesKey("user_email")
+        private val KEY_MOBILE = stringPreferencesKey("user_mobile")
     }
 
     val tokenFlow: Flow<String?> = context.dataStore.data.map { it[KEY_TOKEN] }
@@ -38,6 +40,17 @@ class SessionManager(private val context: Context) {
             prefs[KEY_USER_ID] = userId
         }
     }
+
+    suspend fun saveUserContact(email: String?, mobileNo: String?) {
+        context.dataStore.edit { prefs ->
+            email?.takeIf { it.isNotBlank() }?.let { prefs[KEY_EMAIL] = it }
+            mobileNo?.takeIf { it.isNotBlank() }?.let { prefs[KEY_MOBILE] = it }
+        }
+    }
+
+    suspend fun getEmail(): String? = context.dataStore.data.first()[KEY_EMAIL]
+
+    suspend fun getMobileNo(): String? = context.dataStore.data.first()[KEY_MOBILE]
 
     suspend fun getToken(): String? = context.dataStore.data.first()[KEY_TOKEN]
 

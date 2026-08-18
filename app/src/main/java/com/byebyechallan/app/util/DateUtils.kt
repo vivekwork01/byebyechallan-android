@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
 /**
- * Backend's date-time fields (expiryDate, notificationTime, etc.) are typed as
+ * Backend's date-time fields (expiryDate, etc.) are typed as
  * "date-time" in the OpenAPI spec but we don't know if they'll come back with a
  * timezone offset (e.g. "2026-12-31T00:00:00+05:30") or without one
  * (e.g. "2026-12-31T00:00:00"). This utility tries both so the app doesn't crash

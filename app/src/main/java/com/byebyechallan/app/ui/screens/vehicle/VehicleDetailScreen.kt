@@ -120,10 +120,11 @@ private fun DocumentRow(item: DocumentChecklistItem, onClick: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 if (item.isUploaded) {
-                    if (item.isRenewable) {
+                    val expiry = item.uploaded?.expiryDate
+                    if (!expiry.isNullOrBlank()) {
                         val tint = if (expired) RedExpired else if (soon) AmberWarning else MaterialTheme.colorScheme.onSurfaceVariant
                         Text(
-                            text = "Expires ${DateUtils.formatForDisplay(item.uploaded?.expiryDate)}" + if (expired) " (Expired)" else "",
+                            text = "Expires ${DateUtils.formatForDisplay(expiry)}" + if (expired) " (Expired)" else "",
                             style = MaterialTheme.typography.bodyMedium,
                             color = tint
                         )

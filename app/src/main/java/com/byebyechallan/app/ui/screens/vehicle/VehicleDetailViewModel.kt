@@ -86,7 +86,6 @@ class VehicleDetailViewModel(
                 docName = document.docName ?: "Document",
                 docId = templateId,
                 expiryDate = document.expiryDate,
-                notificationTime = document.notificationTime,
                 email = document.email,
                 whatsApp = document.whatsApp,
                 sms = document.sms,

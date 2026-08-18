@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MoreVert
@@ -35,6 +36,7 @@ fun HomeScreen(
     navController: NavHostController,
     onProfileClick: (id: Long, name: String) -> Unit,
     onAddProfileClick: () -> Unit,
+    onEditProfileClick: (Long) -> Unit,
     onLogout: () -> Unit
 ) {
     val viewModel = viewModel {
@@ -118,8 +120,9 @@ fun HomeScreen(
                         ProfileCard(
                             data = card,
                             profileName = profileName,
-                            vehicleCount    = vehicleCount,
-                            onClick = { onProfileClick(card.profile.id, profileName) }
+                            vehicleCount = vehicleCount,
+                            onClick = { onProfileClick(card.profile.id, profileName) },
+                            onEditClick = { onEditProfileClick(card.profile.id) }
                         )
                     }
                     item { Spacer(modifier = Modifier.height(72.dp)) }
@@ -130,7 +133,13 @@ fun HomeScreen(
 }
 
 @Composable
-private fun ProfileCard(data: ProfileCardData, profileName: String, vehicleCount: Int, onClick: () -> Unit) {
+private fun ProfileCard(
+    data: ProfileCardData,
+    profileName: String,
+    vehicleCount: Int,
+    onClick: () -> Unit,
+    onEditClick: () -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -140,7 +149,10 @@ private fun ProfileCard(data: ProfileCardData, profileName: String, vehicleCount
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(profileName, style = MaterialTheme.typography.titleLarge)
+                Text(profileName, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                IconButton(onClick = onEditClick) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Edit profile")
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))

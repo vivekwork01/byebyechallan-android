@@ -13,6 +13,10 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object CreateProfile : Screen("create_profile")
 
+    object EditProfile : Screen("edit_profile/{profileId}") {
+        fun createRoute(profileId: Long) = "edit_profile/$profileId"
+    }
+
     object ProfileDetail : Screen("profile_detail/{profileId}/{profileName}") {
         fun createRoute(profileId: Long, profileName: String) =
             "profile_detail/$profileId/${Uri.encode(profileName)}"

@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.byebyechallan.app.ByeByeChallanApp
 import com.byebyechallan.app.BuildConfig
+import com.byebyechallan.app.data.model.NotificationChannel
+import com.byebyechallan.app.ui.components.DocumentNotificationToggleRow
 import com.byebyechallan.app.ui.components.DocumentPreviewCard
 import com.byebyechallan.app.ui.components.ErrorBanner
 import com.byebyechallan.app.ui.components.FullScreenLoading
@@ -59,34 +61,52 @@ fun DocumentUploadScreen(
     }
 
     val viewModel = viewModel {
-        DocumentUploadViewModel(userId!!, profileId, vehicleRegNo, docTemplateId, docName, app.documentRepository)
+        DocumentUploadViewModel(
+            userId!!,
+            profileId,
+            vehicleRegNo,
+            docTemplateId,
+            docName,
+            app.documentRepository,
+            app.profileRepository
+        )
     }
     val uiState by viewModel.uiState.collectAsState()
-    val isRenewable = uiState.existingDoc?.renewable ?: renewable
+    val defaultRenewable = uiState.existingDoc?.renewable ?: renewable
 
     var pickedFileUri by remember { mutableStateOf<Uri?>(null) }
     var pickedFileName by remember { mutableStateOf<String?>(null) }
     var expiryDate by remember { mutableStateOf<LocalDate?>(null) }
-    var notifyEmail by remember { mutableStateOf(true) }
+    var notifyEmail by remember { mutableStateOf(false) }
     var notifyWhatsApp by remember { mutableStateOf(false) }
     var notifySms by remember { mutableStateOf(false) }
     var showExpiryDatePicker by remember { mutableStateOf(false) }
 
-    // Pre-fill dates from an existing record once it loads (edit mode)
-    LaunchedEffect(uiState.existingDoc) {
-        if (isRenewable) {
-            uiState.existingDoc?.expiryDate?.let { dateStr ->
-                DateUtils.parseToEpochMillis(dateStr)?.let { millis ->
-                    expiryDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
-                }
-            }
-            uiState.existingDoc?.let {
-                notifyEmail = it.email
-                notifyWhatsApp = it.whatsApp
-                notifySms = it.sms
+    // Pre-fill from an existing record once it loads (edit mode)
+    LaunchedEffect(uiState.existingDoc, uiState.profileRecipients) {
+        uiState.existingDoc?.expiryDate?.let { dateStr ->
+            DateUtils.parseToEpochMillis(dateStr)?.let { millis ->
+                expiryDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
             }
         }
+        uiState.existingDoc?.let {
+            notifyEmail = uiState.isChannelAvailableOnProfile(NotificationChannel.EMAIL) && it.email
+            notifyWhatsApp = uiState.isChannelAvailableOnProfile(NotificationChannel.WHATSAPP) && it.whatsApp
+            notifySms = uiState.isChannelAvailableOnProfile(NotificationChannel.SMS) && it.sms
+        }
     }
+
+    LaunchedEffect(uiState.profileRecipientsLoaded, uiState.profileRecipients) {
+        if (uiState.profileRecipientsLoaded) {
+            if (!uiState.isChannelAvailableOnProfile(NotificationChannel.EMAIL)) notifyEmail = false
+            if (!uiState.isChannelAvailableOnProfile(NotificationChannel.WHATSAPP)) notifyWhatsApp = false
+            if (!uiState.isChannelAvailableOnProfile(NotificationChannel.SMS)) notifySms = false
+        }
+    }
+
+    val emailAvailableOnProfile = uiState.isChannelAvailableOnProfile(NotificationChannel.EMAIL)
+    val whatsAppAvailableOnProfile = uiState.isChannelAvailableOnProfile(NotificationChannel.WHATSAPP)
+    val smsAvailableOnProfile = uiState.isChannelAvailableOnProfile(NotificationChannel.SMS)
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { msg ->
@@ -198,36 +218,57 @@ fun DocumentUploadScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (isRenewable) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Expiry Date",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                OutlinedButton(
+                    onClick = { showExpiryDatePicker = true },
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = "Expiry Date",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    OutlinedButton(
-                        onClick = { showExpiryDatePicker = true },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Filled.CalendarToday, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(expiryDate?.toString() ?: "Select Expiry Date")
-                    }
+                    Icon(Icons.Filled.CalendarToday, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(expiryDate?.toString() ?: "Select Expiry Date (optional)")
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text("Notify me before expiry via:", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(4.dp))
-                ToggleRow("Email", notifyEmail) { notifyEmail = it }
-                ToggleRow("WhatsApp", notifyWhatsApp) { notifyWhatsApp = it }
-                ToggleRow("SMS", notifySms) { notifySms = it }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Notify me before expiry via:",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            DocumentNotificationToggleRow(
+                label = "Email",
+                checked = notifyEmail,
+                availableOnProfile = emailAvailableOnProfile,
+                profileLoaded = uiState.profileRecipientsLoaded,
+                onCheckedChange = { notifyEmail = it }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            DocumentNotificationToggleRow(
+                label = "WhatsApp",
+                checked = notifyWhatsApp,
+                availableOnProfile = whatsAppAvailableOnProfile,
+                profileLoaded = uiState.profileRecipientsLoaded,
+                onCheckedChange = { notifyWhatsApp = it }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            DocumentNotificationToggleRow(
+                label = "SMS",
+                checked = notifySms,
+                availableOnProfile = smsAvailableOnProfile,
+                profileLoaded = uiState.profileRecipientsLoaded,
+                onCheckedChange = { notifySms = it }
+            )
 
             if (uiState.errorMessage != null) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -247,7 +288,7 @@ fun DocumentUploadScreen(
                         notifyEmail,
                         notifyWhatsApp,
                         notifySms,
-                        isRenewable
+                        defaultRenewable
                     )
                 }
             )
@@ -256,7 +297,7 @@ fun DocumentUploadScreen(
         }
     }
 
-    if (showExpiryDatePicker && isRenewable) {
+    if (showExpiryDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = expiryDate
                 ?.atStartOfDay(ZoneId.systemDefault())
@@ -279,17 +320,5 @@ fun DocumentUploadScreen(
         ) {
             DatePicker(state = datePickerState)
         }
-    }
-}
-
-@Composable
-private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

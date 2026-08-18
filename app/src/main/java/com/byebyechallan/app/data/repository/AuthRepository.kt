@@ -16,6 +16,7 @@ class AuthRepository(
         return try {
             val response = api.register(RegisterRequest(name, email, password, mobileNo))
             if (response.isSuccessful) {
+                sessionManager.saveUserContact(email = email, mobileNo = mobileNo)
                 ApiResult.Success(Unit)
             } else {
                 ApiResult.Error(response.errorBody()?.string() ?: "Registration failed. Please try again.")
@@ -44,6 +45,7 @@ class AuthRepository(
                     )
                 }
                 sessionManager.saveSession(auth.token, auth.refreshToken, userId)
+                sessionManager.saveUserContact(email = email, mobileNo = null)
                 ApiResult.Success(auth)
             } else {
                 ApiResult.Error(response.body()?.message ?: "Invalid email or password.")

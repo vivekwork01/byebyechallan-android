@@ -8,10 +8,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,6 +35,7 @@ fun ProfileDetailScreen(
     profileId: Long,
     profileName: String,
     onBack: () -> Unit,
+    onEditProfile: () -> Unit,
     onAddVehicle: () -> Unit,
     onVehicleClick: (VehicleSummary) -> Unit
 ) {
@@ -42,7 +47,8 @@ fun ProfileDetailScreen(
         )
     }
     val state by viewModel.uiState.collectAsState()
-    
+    var displayedName by remember(profileName) { mutableStateOf(profileName) }
+
     val currentBackStackEntry = navController.currentBackStackEntry
     LaunchedEffect(currentBackStackEntry) {
         currentBackStackEntry?.savedStateHandle?.let { savedState ->
@@ -51,16 +57,25 @@ fun ProfileDetailScreen(
                 viewModel.loadVehicles()
                 savedState.set("refreshVehicles", false)
             }
+            savedState.get<String>("updatedProfileName")?.let { name ->
+                displayedName = name
+                savedState.remove<String>("updatedProfileName")
+            }
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(profileName) },
+                title = { Text(displayedName) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onEditProfile) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Edit profile")
                     }
                 }
             )

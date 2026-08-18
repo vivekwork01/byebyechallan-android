@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
-import java.time.LocalDateTime
 
 data class AddVehicleUiState(
     val countries: List<CountryDto> = emptyList(),
@@ -160,7 +159,6 @@ class AddVehicleViewModel(
                         docName = template.docName,
                         docId = if (isRc) "${template.docId}_${System.currentTimeMillis()}" else "",
                         expiryDate = if (isRc) DateUtils.toIsoDateTimeString(rcExpiryDate) else null,
-                        notificationTime = if (isRc) LocalDateTime.now().toString() else template.notificationTime,
                         fileName = if (isRc) savedOriginalFileName else null,
                         s3FileName = if (isRc) savedS3FileName else null,
                         email = false,

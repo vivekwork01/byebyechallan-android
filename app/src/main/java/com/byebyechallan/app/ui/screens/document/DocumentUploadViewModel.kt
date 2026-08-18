@@ -3,25 +3,34 @@ package com.byebyechallan.app.ui.screens.document
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.byebyechallan.app.data.model.DocumentRequestDto
+import com.byebyechallan.app.data.model.NotificationChannel
+import com.byebyechallan.app.data.model.NotificationRecipientState
 import com.byebyechallan.app.data.model.UserDocumentDto
 import com.byebyechallan.app.data.repository.ApiResult
 import com.byebyechallan.app.data.repository.DocumentRepository
+import com.byebyechallan.app.data.repository.ProfileRepository
 import com.byebyechallan.app.util.DateUtils
 import com.byebyechallan.app.util.RegistrationCertificateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
-import java.time.LocalDateTime
 import java.time.LocalDate
 
 data class DocumentUploadUiState(
     val isLoadingExisting: Boolean = true,
     val existingDoc: UserDocumentDto? = null,
+    val profileRecipients: Map<NotificationChannel, String>? = null,
+    val profileRecipientsLoaded: Boolean = false,
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
     val isSuccess: Boolean = false
-)
+) {
+    fun isChannelAvailableOnProfile(channel: NotificationChannel): Boolean {
+        if (!profileRecipientsLoaded) return false
+        return NotificationRecipientState.isChannelAvailableOnProfile(profileRecipients, channel)
+    }
+}
 
 class DocumentUploadViewModel(
     private val userId: Long,
@@ -29,7 +38,8 @@ class DocumentUploadViewModel(
     private val vehicleRegNo: String,
     private val docTemplateId: String,
     private val docName: String,
-    private val documentRepository: DocumentRepository
+    private val documentRepository: DocumentRepository,
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DocumentUploadUiState())
@@ -37,6 +47,23 @@ class DocumentUploadViewModel(
 
     init {
         loadExistingIfAny()
+        loadProfileRecipients()
+    }
+
+    private fun loadProfileRecipients() {
+        viewModelScope.launch {
+            when (val result = profileRepository.getProfile(userId, profileId)) {
+                is ApiResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        profileRecipients = result.data.resolvedNotificationRecipients(),
+                        profileRecipientsLoaded = true
+                    )
+                }
+                is ApiResult.Error -> {
+                    _uiState.value = _uiState.value.copy(profileRecipientsLoaded = true)
+                }
+            }
+        }
     }
 
     /** Checks whether this document type already has an uploaded record, to support "edit" mode. */
@@ -61,10 +88,7 @@ class DocumentUploadViewModel(
             _uiState.value = _uiState.value.copy(errorMessage = "Please select a file to upload.")
             return
         }
-        if (isRenewable && expiryDate == null) {
-            _uiState.value = _uiState.value.copy(errorMessage = "Please select an expiry date.")
-            return
-        }
+        val savedRenewable = _uiState.value.existingDoc?.renewable ?: isRenewable
         val isRc = RegistrationCertificateUtils.isRegistrationCertificate(docName)
 
         _uiState.value = _uiState.value.copy(isSaving = true, errorMessage = null)
@@ -89,20 +113,27 @@ class DocumentUploadViewModel(
                 }
             }
 
+            val profileState = _uiState.value
+            val emailAllowed = profileState.isChannelAvailableOnProfile(NotificationChannel.EMAIL)
+            val whatsAppAllowed = profileState.isChannelAvailableOnProfile(NotificationChannel.WHATSAPP)
+            val smsAllowed = profileState.isChannelAvailableOnProfile(NotificationChannel.SMS)
+            val notifyViaEmail = emailAllowed && notifyEmail
+            val notifyViaWhatsApp = whatsAppAllowed && notifyWhatsApp
+            val notifyViaSms = smsAllowed && notifySms
+
             val request = DocumentRequestDto(
                 id = _uiState.value.existingDoc?.id ?: 0L,
                 docTemplateId = docTemplateId,
                 docName = docName,
                 docId = _uiState.value.existingDoc?.docId ?: "${docTemplateId}_${System.currentTimeMillis()}",
-                expiryDate = if (isRenewable) expiryDate?.let { DateUtils.toIsoDateTimeString(it) } else null,
-                notificationTime = if (isRenewable) LocalDateTime.now().toString() else null,
+                expiryDate = expiryDate?.let { DateUtils.toIsoDateTimeString(it) },
                 fileName = savedOriginalFileName,
                 s3FileName = savedS3FileName,
-                email = if (isRenewable) notifyEmail else false,
-                whatsApp = if (isRenewable) notifyWhatsApp else false,
-                sms = if (isRenewable) notifySms else false,
+                email = notifyViaEmail,
+                whatsApp = notifyViaWhatsApp,
+                sms = notifyViaSms,
                 uploaded = true,
-                renewable = isRenewable
+                renewable = savedRenewable
             )
 
             val rcDto = if (isRc) {

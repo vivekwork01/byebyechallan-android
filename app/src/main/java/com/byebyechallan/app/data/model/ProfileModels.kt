@@ -1,15 +1,32 @@
 package com.byebyechallan.app.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class ProfileRequestDto(
-    val profileName: String
+    val profileName: String,
+    val recipients: Map<NotificationChannel, String> = emptyMap()
 )
 
 data class ProfileDto(
     val id: Long,
     val userId: Long,
     val profileName: String?,
-    val vehicleCount: Int = 0
-)
+    val vehicleCount: Int = 0,
+    /** Legacy/raw recipients payload returned by some profile list responses. */
+    val recipients: String? = null,
+    @SerializedName("notification_recipients")
+    val notificationRecipients: Map<String, String>? = null
+) {
+    fun resolvedNotificationRecipients(): Map<NotificationChannel, String>? {
+        if (!notificationRecipients.isNullOrEmpty()) {
+            return NotificationRecipientState.normalizeStringMap(notificationRecipients)
+        }
+        if (!recipients.isNullOrBlank()) {
+            return NotificationRecipientState.parseRecipientsJsonString(recipients)
+        }
+        return null
+    }
+}
 
 // Request sent when adding a vehicle to a profile. The backend expects the
 // registration number, optional vehicle name, and a list of document entries.
